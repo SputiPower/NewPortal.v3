@@ -1,0 +1,17 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Мой магазин{% endblock title %}</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    
+    <!-- JS -->
+    <script src="{% static 'js/scripts.js' %}" defer></script>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{% static 'Assets/favicon.ico' %}" type="image/x-icon">
+</head>
+<body>
