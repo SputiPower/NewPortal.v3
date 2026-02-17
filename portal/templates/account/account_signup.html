@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Регистрация{% endblock %}
+
+{% block content %}
+<div class="login-page">
+
+  <div class="login-container">
+    <h1>Регистрация на NewsPortal</h1>
+    <p class="subtitle">Создайте новый аккаунт</p>
+
+    {% if form.non_field_errors %}
+      <div class="form-errors">
+        {{ form.non_field_errors|striptags }}
+      </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="form-group">
+        {{ form.email }}
+        <label for="{{ form.email.id_for_label }}">Email</label>
+        {% if form.email.errors %}
+          <div class="error-message">{{ form.email.errors|striptags }}</div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        {{ form.password1 }}
+        <label for="{{ form.password1.id_for_label }}">Пароль</label>
+        <span class="show-password" onclick="togglePassword('password1')">👁 Показать</span>
+        {% if form.password1.errors %}
+          <div class="error-message">{{ form.password1.errors|striptags }}</div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        {{ form.password2 }}
+        <label for="{{ form.password2.id_for_label }}">Подтвердите пароль</label>
+        <span class="show-password" onclick="togglePassword('password2')">👁 Показать</span>
+        {% if form.password2.errors %}
+          <div class="error-message">{{ form.password2.errors|striptags }}</div>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="btn">Зарегистрироваться</button>
+    </form>
+
+    {% if socialaccount_providers.google %}
+      <a href="{% provider_login_url 'google' %}" class="btn google-btn">Войти через Google</a>
+    {% endif %}
+
+    <p class="login-footer">
+      Уже есть аккаунт? <a href="{% url 'account_login' %}">Войти</a>
+    </p>
+
+  </div>
+
+</div>
+
+<script>
+function togglePassword(fieldName) {
+    const input = document.querySelector('input[name="' + fieldName + '"]');
+    input.type = input.type === "password" ? "text" : "password";
+}
+</script>
+{% endblock %}
+
+

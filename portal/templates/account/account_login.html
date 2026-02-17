@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load i18n socialaccount %}
+
+{% block title %}Вход{% endblock %}
+
+{% block content %}
+<div class="form-wrapper">
+  <h2>Вход на сайт</h2>
+
+  {% if form.non_field_errors %}
+    <div class="non-field-errors">{{ form.non_field_errors|striptags }}</div>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <div class="input-wrapper">
+      {{ form.login }}
+      <label for="{{ form.login.id_for_label }}">Email</label>
+      {% if form.login.errors %}
+        <div class="error-message">{{ form.login.errors|striptags }}</div>
+      {% endif %}
+    </div>
+
+    <div class="input-wrapper">
+      {{ form.password }}
+      <label for="{{ form.password.id_for_label }}">Пароль</label>
+      <span class="show-password" onclick="togglePassword()">👁 Показать</span>
+      {% if form.password.errors %}
+        <div class="error-message">{{ form.password.errors|striptags }}</div>
+      {% endif %}
+    </div>
+
+    <button type="submit">Войти</button>
+  </form>
+
+  {% if 'google' in socialaccount_providers %}
+    <a href="{% provider_login_url 'google' %}" class="google-btn">
+      Войти через Google
+    </a>
+  {% endif %}
+
+  <p class="footer-text">
+    Нет аккаунта? <a href="{% url 'account_signup' %}">Зарегистрироваться</a>
+  </p>
+</div>
+
+<script>
+function togglePassword() {
+    const input = document.querySelector('input[type="password"]');
+    input.type = input.type === "password" ? "text" : "password";
+}
+</script>
+{% endblock %}

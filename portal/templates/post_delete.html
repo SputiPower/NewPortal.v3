@@ -1,0 +1,7 @@
+<h2>Вы действительно хотите удалить {{ object.title }}?</h2>
+
+<form method="post">
+  {% csrf_token %}
+  <button type="submit">Да, удалить</button>
+  <a href="{% if object.type == 'NW' %}{% url 'news_list' %}{% else %}{% url 'article_list' %}{% endif %}">Отмена</a>
+</form>

@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load censor %}
+
+{% block title %}{{ article.title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <h1>{{ article.title|censor }}</h1>
+    <p class="text-muted">
+        Автор: {{ article.author.user.username }} | Дата: {{ article.created_at|date:"d.m.Y H:i" }}
+    </p>
+
+    {% if article.image %}
+        <img src="{{ article.image.url }}" class="img-fluid mb-4" alt="{{ article.title }}">
+    {% endif %}
+
+    <div class="mb-4">
+        {{ article.text|linebreaks|censor }}
+    </div>
+
+    <p>Рейтинг: {{ article.rating }}</p>
+
+    <a href="{% url 'article_list' %}" class="btn btn-primary">Назад к статьям</a>
+</div>
+{% endblock %}

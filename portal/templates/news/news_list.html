@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% load static %}
+{% load censor %}
+
+{% block title %}Новости{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Новости</h1>
+
+{# ===== ФИЛЬТРЫ (django-filter) ===== #}
+<form method="get" class="mb-4">
+    {{ filterset.form.as_p }}
+    <button type="submit" class="btn btn-primary">Применить</button>
+</form>
+
+{# ===== КАТЕГОРИИ ===== #}
+<h2>Категории</h2>
+<div class="d-flex flex-wrap mb-4">
+    {% for category in categories %}
+        <a href="{% url 'category_posts' category.id %}"
+           class="btn btn-outline-primary me-2 mb-2">
+            {{ category.name }}
+        </a>
+    {% endfor %}
+</div>
+
+{# ===== СЕТКА НОВОСТЕЙ ===== #}
+<div class="row">
+    {% for item in news %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body d-flex flex-column">
+
+                    <h5 class="card-title">
+                        <a href="{% url 'news_detail' item.id %}" class="text-decoration-none">
+                            {{ item.title|censor }}
+                        </a>
+                    </h5>
+
+                    <p class="text-muted small mb-2">
+                        {{ item.created_at|date:"d.m.Y H:i" }}
+                    </p>
+
+                    <p class="card-text">
+                        {{ item.text|truncatechars:120|censor }}
+                    </p>
+
+                    <div class="mt-auto d-flex justify-content-between align-items-center">
+                        <a href="{% url 'news_detail' item.id %}"
+                           class="btn btn-outline-primary btn-sm">
+                           Читать далее
+                        </a>
+                        <span>✅ {{ item.rating }}</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <p>Новостей нет</p>
+    {% endfor %}
+</div>
+
+{# ===== ПАГИНАЦИЯ (с кнопками "Первая", "Последняя" и ближайшие страницы ±2) ===== #}
+{% with request.GET.urlencode as query_params %}
+<nav aria-label="Page navigation">
+  <ul class="pagination justify-content-center">
+
+    {# Первая страница #}
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?{{ query_params }}&page=1">Первая</a>
+      </li>
+    {% endif %}
+
+    {# Предыдущая страница #}
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?{{ query_params }}&page={{ page_obj.previous_page_number }}">«</a>
+      </li>
+    {% endif %}
+
+    {# Ближайшие страницы ±2 #}
+    {% for num in page_obj.paginator.page_range %}
+      {% if num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %}
+        <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+          <a class="page-link" href="?{{ query_params }}&page={{ num }}">{{ num }}</a>
+        </li>
+      {% endif %}
+    {% endfor %}
+
+    {# Следующая страница #}
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?{{ query_params }}&page={{ page_obj.next_page_number }}">»</a>
+      </li>
+    {% endif %}
+
+    {# Последняя страница #}
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?{{ query_params }}&page={{ page_obj.paginator.num_pages }}">Последняя</a>
+      </li>
+    {% endif %}
+
+  </ul>
+</nav>
+{% endwith %}
+
+{# ===== ИЗБРАННАЯ НОВОСТЬ ===== #}
+{% if featured %}
+<div class="featured-news mb-5 p-5 rounded text-white">
+    <h2 class="mb-2">{{ featured.title|censor }}</h2>
+    <p class="small opacity-75">{{ featured.created_at|date:"d.m.Y H:i" }}</p>
+    <p>{{ featured.text|truncatechars:300|censor }}</p>
+    <a href="{% url 'news_detail' featured.id %}" class="btn btn-light">Читать полностью</a>
+</div>
+{% endif %}
+
+{# ===== ПОСЛЕДНИЕ НОВОСТИ ПО КАТЕГОРИЯМ ===== #}
+{% for category in categories %}
+<h3 class="mt-5 mb-3">{{ category.name }}</h3>
+<div class="row">
+    {% for post in category.post_set.all|slice:":3" %}
+        {% if post.type == 'NW' %}
+        <div class="col-md-4 mb-3">
+            <div class="card news-card h-100">
+                <div class="card-body">
+                    <h6>{{ post.title|censor }}</h6>
+                    <p class="small text-muted">{{ post.created_at|date:"d.m.Y" }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endfor %}
+
+{% endblock %}

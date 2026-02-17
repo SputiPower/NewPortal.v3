@@ -1,0 +1,235 @@
+.news-container {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 0 20px;
+    font-family: Georgia, "Times New Roman", serif;
+    line-height: 1.6;
+}
+
+.news-title {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.news-date {
+    color: #777;
+    font-size: 14px;
+    margin-bottom: 30px;
+}
+
+.news-text p {
+    margin-bottom: 16px;
+    text-align: justify;
+}
+
+.news-card {
+    border-bottom: 1px solid #ddd;
+    padding: 20px 0;
+}
+
+.news-card h2 {
+    margin-bottom: 5px;
+}
+
+.news-card a {
+    text-decoration: none;
+    color: #333;
+}
+
+.news-card a:hover {
+    color: #007bff;
+}
+
+.date {
+    font-size: 13px;
+    color: gray;
+}
+
+
+/* FEATURED */
+.featured-news {
+    background: linear-gradient(135deg, #141e30, #243b55);
+    color: white;
+    padding: 30px;
+    border-radius: 12px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.featured-news:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 25px rgba(0,0,0,.3);
+}
+
+/* Новости (карточки) */
+.news-card {
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.news-card .card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.news-card h5, .news-card h6 {
+    font-weight: 600;
+}
+
+.news-card a {
+    text-decoration: none;
+    color: #333;
+    transition: color 0.3s;
+}
+
+.news-card a:hover {
+    color: #007bff;
+}
+
+.news-card p {
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.news-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 25px rgba(0,0,0,.15);
+}
+
+/* FEATURED блок */
+.featured-news {
+    background: linear-gradient(135deg, #141e30, #243b55);
+    color: white;
+    padding: 30px;
+    border-radius: 12px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 40px;
+}
+
+.featured-news:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 25px rgba(0,0,0,.3);
+}
+
+
+/* ТЕКСТ */
+.news-card p {
+    line-height: 1.5;
+}
+
+/* КАТЕГОРИИ */
+h3 {
+    margin-top: 40px;
+    margin-bottom: 20px;
+    font-weight: 600;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 5px;
+}
+
+/* Кнопки */
+.btn-outline-success {
+    transition: all 0.3s ease;
+}
+
+.btn-outline-success:hover {
+    background-color: #28a745;
+    color: white;
+}
+
+/* Фотография */
+.welcome-block {
+    position: relative;
+    background: url('/static/Assets/newspaper-background.jpg') no-repeat center center;
+    background-size: cover;
+    border-radius: 12px;
+    overflow: hidden;
+    max-width: 900px;
+    margin: 0 auto 40px auto;
+}
+
+/* Затемняющий слой поверх фонового изображения */
+.welcome-block::before {
+    content: "";
+    position: absolute;
+    inset: 0;  /* top:0; right:0; bottom:0; left:0 */
+    background: rgba(0, 0, 0, 0.6);  /* полупрозрачный черный */
+    z-index: 0;
+}
+
+.welcome-block > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Пример */
+.jumbotron {
+    background: url('/static/Assets/newspaper-background.jpg') no-repeat center center;
+    background-size: cover;
+}
+/* Hero Section */
+.hero-section {
+    position: relative;
+    height: 800px;
+    background: url('../assets/newspaper-background.jpg') no-repeat center center;
+    background-size: cover;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.hero-content {
+    position: relative;
+    text-align: center;
+    color: white;
+    animation: fadeInUp 1.2s ease forwards;
+    opacity: 0;
+}
+
+.hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+    font-size: 1.3rem;
+    margin-bottom: 2rem;
+}
+
+/* Кнопка */
+.hero-btn {
+    font-weight: 700;
+    padding: 0.75rem 2rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hero-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+
+/* Анимация появления текста */
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bold-text {
+    font-weight: 700; /* 700 — стандартное жирное */
+}

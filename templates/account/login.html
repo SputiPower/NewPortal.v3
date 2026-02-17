@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load i18n account socialaccount static %}
+
+{% block title %}Вход{% endblock %}
+
+{% block content %}
+<div class="form-wrapper">
+    <h2>Вход на сайт</h2>
+
+    {% if form.non_field_errors %}
+        <div class="non-field-errors">{{ form.non_field_errors|striptags }}</div>
+    {% endif %}
+
+    <form method="post" action="{% url 'account_login' %}" novalidate>
+        {% csrf_token %}
+
+        <!-- Email / Username -->
+        <div class="input-wrapper">
+            {{ form.login }}
+            <label for="{{ form.login.id_for_label }}">Email</label>
+            {% if form.login.errors %}
+                <div class="error-message">{{ form.login.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <!-- Password -->
+        <div class="input-wrapper">
+            {{ form.password }}
+            <label for="{{ form.password.id_for_label }}">Пароль</label>
+            <span class="show-password" onclick="togglePassword()">👁 Показать</span>
+            {% if form.password.errors %}
+                <div class="error-message">{{ form.password.errors|striptags }}</div>
+            {% endif %}
+        </div>
+
+        <button type="submit">Войти</button>
+    </form>
+
+    <hr>
+
+    <!-- Социальные кнопки -->
+    {% get_providers as socialaccount_providers %}
+    {% if socialaccount_providers %}
+    <div class="social-buttons">
+        {% for provider in socialaccount_providers %}
+            <a href="{% provider_login_url provider.id %}" class="{{ provider.id }}-btn" aria-label="Войти через {{ provider.name }}">
+                Войти через {{ provider.name }}
+            </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <p class="footer-text">
+        Нет аккаунта? <a href="{% url 'account_signup' %}">Зарегистрироваться</a>
+    </p>
+</div>
+
+<script>
+function togglePassword() {
+    const input = document.querySelector('input[type="password"]');
+    if (input) input.type = input.type === "password" ? "text" : "password";
+}
+</script>
+{% endblock %}

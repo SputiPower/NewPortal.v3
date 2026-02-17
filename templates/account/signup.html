@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n account socialaccount static %}
+
+{% block title %}Регистрация{% endblock %}
+
+{% block content %}
+<div class="form-wrapper">
+    <h2>Регистрация</h2>
+
+    {% if form.non_field_errors %}
+        <div class="non-field-errors">{{ form.non_field_errors|striptags }}</div>
+    {% endif %}
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% for field in form %}
+            <div class="input-wrapper">
+                {{ field }}
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {% if field.errors %}
+                    <div class="error-message">{{ field.errors|striptags }}</div>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <button type="submit">Зарегистрироваться</button>
+    </form>
+
+    <hr>
+
+    <!-- Соцкнопки -->
+    {% get_providers as socialaccount_providers %}
+    {% if socialaccount_providers %}
+    <div class="social-buttons">
+        {% for provider in socialaccount_providers %}
+            {% if provider.id == "google" %}
+                <a href="{% provider_login_url 'google' %}" class="google-btn" aria-label="Регистрация через Google">
+                    Зарегистрироваться через Google
+                </a>
+            {% elif provider.id == "yandex" %}
+                <a href="{% provider_login_url 'yandex' %}" class="yandex-btn" aria-label="Регистрация через Яндекс">
+                    Зарегистрироваться через Яндекс
+                </a>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <p class="footer-text">
+        Уже есть аккаунт? <a href="{% url 'account_login' %}">Войти</a>
+    </p>
+</div>
+{% endblock %}

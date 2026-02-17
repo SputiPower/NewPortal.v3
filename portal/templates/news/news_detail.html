@@ -1,0 +1,47 @@
+{% extends "default.html" %}
+
+{% load static %}
+{% load censor %}
+
+{% block title %}
+{{ news_item.title }}
+{% endblock %}
+
+{% block content %}
+<div class="news-container">
+
+    <div class="news-title">
+
+    </div>
+
+    <div class="news-date">
+        {{ post.created_at|date:"d.m.Y" }}
+    </div>
+
+    <div class="news-text">
+
+    </div>
+
+</div>
+
+<h2>{{ news_item.title }}</h2>
+<p><small>Дата публикации: {{ news_item.created_at|date:"d.m.Y" }}</small></p>
+<p>{{ news_item.text }}</p>
+{% endblock %}
+
+{% block breadcrumbs %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item">
+        <a href="{% url 'home' %}">Главная</a>
+    </li>
+    <li class="breadcrumb-item">
+        <a href="{% url 'news_list' %}">Новости</a>
+    </li>
+    <li class="breadcrumb-item active">
+        {{ news_item.title }}
+    </li>
+  </ol>
+</nav>
+{% endblock %}
+
