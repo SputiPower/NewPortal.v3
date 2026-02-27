@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Интерактивные слова{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'portal/word_box.css' %}">
+
+<div id="container"></div>
+
+<script>
+const container = document.getElementById('container');
+
+// Слова
+const words = ["Hello","World","JS","Django","Python","Code","Fun","Move","Click","Test"];
+
+// Создаем элементы
+const elems = words.map(text => {
+  const el = document.createElement('div');
+  el.className = 'word';
+  el.innerText = text;
+  container.appendChild(el);
+
+  el.x = Math.random() * (container.clientWidth - 80);
+  el.y = Math.random() * (container.clientHeight - 30);
+
+  el.vx = (Math.random()-0.5)*2;
+  el.vy = (Math.random()-0.5)*2;
+
+  el.style.left = el.x + 'px';
+  el.style.top = el.y + 'px';
+  return el;
+});
+
+// Перетаскивание
+let dragEl = null;
+let offsetX = 0;
+let offsetY = 0;
+
+elems.forEach(el => {
+  el.addEventListener('mousedown', e => {
+    dragEl = el;
+    offsetX = e.offsetX;
+    offsetY = e.offsetY;
+    el.vx = 0;
+    el.vy = 0;
+  });
+});
+
+document.addEventListener('mousemove', e => {
+  if(dragEl){
+    dragEl.x = e.clientX - container.getBoundingClientRect().left - offsetX;
+    dragEl.y = e.clientY - container.getBoundingClientRect().top - offsetY;
+    dragEl.x = Math.max(0, Math.min(dragEl.x, container.clientWidth - dragEl.offsetWidth));
+    dragEl.y = Math.max(0, Math.min(dragEl.y, container.clientHeight - dragEl.offsetHeight));
+    dragEl.style.left = dragEl.x + 'px';
+    dragEl.style.top = dragEl.y + 'px';
+  }
+});
+
+document.addEventListener('mouseup', e => dragEl = null);
+
+// Функция столкновений и движения
+function animate() {
+  elems.forEach(el => {
+    if(el !== dragEl){
+      el.x += el.vx;
+      el.y += el.vy;
+
+      // Границы контейнера
+      if(el.x <= 0 || el.x >= container.clientWidth - el.offsetWidth) el.vx *= -1;
+      if(el.y <= 0 || el.y >= container.clientHeight - el.offsetHeight) el.vy *= -1;
+
+      // Столкновения
+      elems.forEach(other => {
+        if(el === other) return;
+        const dx = (el.x + el.offsetWidth/2) - (other.x + other.offsetWidth/2);
+        const dy = (el.y + el.offsetHeight/2) - (other.y + other.offsetHeight/2);
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if(dist < 50){
+          const angle = Math.atan2(dy, dx);
+          el.vx += Math.cos(angle)*0.1;
+          el.vy += Math.sin(angle)*0.1;
+          other.vx -= Math.cos(angle)*0.1;
+          other.vy -= Math.sin(angle)*0.1;
+        }
+      });
+
+      // Ограничение скорости
+      const speedLimit = 2;
+      el.vx = Math.max(-speedLimit, Math.min(speedLimit, el.vx));
+      el.vy = Math.max(-speedLimit, Math.min(speedLimit, el.vy));
+
+      el.style.left = el.x + 'px';
+      el.style.top = el.y + 'px';
+    }
+  });
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+{% endblock %}

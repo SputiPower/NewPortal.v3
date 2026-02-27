@@ -3,56 +3,158 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
     <title>{% block title %}Новости{% endblock %}</title>
 
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Основные стили -->
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
-    <link rel="stylesheet" href="{% static 'css/news.css' %}" />
-    <link rel="stylesheet" href="{% static 'css/account.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/news.css' %}">
+    <link rel="stylesheet" href="{% static 'css/account.css' %}">
 
     <!-- Favicon -->
-    <link rel="icon" href="{% static 'assets/favicon.ico' %}" type="image/x-icon" />
-</head>
-<body class="bg-light">
+    <link rel="icon" href="{% static 'assets/favicon.ico' %}" type="image/x-icon">
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <style>
+        /* Основной стиль шапки */
+        .navbar-custom {
+            background: linear-gradient(90deg, #2563eb, #1e40af);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        .navbar-custom .nav-link {
+            color: #fff;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            margin-right: 8px;
+        }
+        .navbar-custom .nav-link:hover,
+        .navbar-custom .nav-link.active {
+            color: #ffd700;
+            background-color: rgba(255,255,255,0.1);
+            border-radius: 5px;
+        }
+
+        /* Dropdown меню */
+        .dropdown-menu {
+            background-color: #495057;
+            border-radius: 0.25rem;
+            transition: all 0.3s ease;
+        }
+        .dropdown-menu a {
+            color: #fff;
+            padding: 8px 20px;
+            display: block;
+            transition: all 0.2s ease;
+        }
+        .dropdown-menu a:hover {
+            background-color: #343a40;
+            color: #ffd700;
+        }
+
+        /* Анимация dropdown */
+        .dropdown:hover .dropdown-menu {
+            display: block;
+            margin-top: 0;
+        }
+
+        /* Кнопки авторизации */
+        .btn-auth {
+            transition: all 0.2s ease;
+        }
+        .btn-auth:hover {
+            background-color: #ffd700;
+            color: #000;
+        }
+
+        /* Активная страница */
+        .nav-link.active {
+            font-weight: bold;
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Верхняя панель: логотип и авторизация -->
+<nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top">
     <div class="container">
-        <a class="navbar-brand" href="/">NewsPortal</a>
-        <div class="d-flex ms-auto align-items-center gap-2">
-            {% if user.is_authenticated %}
-                <span class="nav-username">Привет, {{ user.email|default:user.username }}</span>
-                <a href="{% url 'account_logout' %}" class="btn btn-logout">Выйти</a>
-            {% else %}
-                <a href="{% url 'account_login' %}" class="btn btn-login">Войти</a>
-            {% endif %}
+        <a class="navbar-brand fw-bold" href="/">NewsPortal</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#megaNavbar" aria-controls="megaNavbar" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="megaNavbar">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+                <!-- Новости -->
+                {% url 'news_list' as news_url %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == news_url %}active{% endif %}" href="{{ news_url }}">
+                        Новости
+                    </a>
+                </li>
+
+                <!-- Статьи -->
+                {% url 'article_list' as articles_url %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.path == articles_url %}active{% endif %}" href="{{ articles_url }}">
+                        Статьи
+                    </a>
+                </li>
+
+                <!-- Категории -->
+                {% for category in categories %}
+                    {% url 'category_posts' category.id as category_url %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.path == category_url %}active{% endif %}" href="{{ category_url }}" id="dropdown{{ category.id }}" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            {% if category.icon %}
+                                <img src="{{ category.icon.url }}" alt="{{ category.name }}" width="20" class="me-1">
+                            {% endif %}
+                            {{ category.name }}
+                        </a>
+                        {% if category.subcategories.all %}
+                        <ul class="dropdown-menu" aria-labelledby="dropdown{{ category.id }}">
+                            {% for subcat in category.subcategories.all %}
+                                {% url 'category_posts' subcat.id as subcat_url %}
+                                <li>
+                                    <a class="dropdown-item" href="{{ subcat_url }}">
+                                        {% if subcat.icon %}
+                                            <img src="{{ subcat.icon.url }}" alt="{{ subcat.name }}" width="18" class="me-1">
+                                        {% endif %}
+                                        {{ subcat.name }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <!-- Авторизация -->
+            <div class="d-flex align-items-center gap-2">
+                {% if user.is_authenticated %}
+                    <span class="text-white me-2">Привет, {{ user.username }}</span>
+                    <a href="{% url 'account_logout' %}" class="btn btn-sm btn-outline-light btn-auth">Выйти</a>
+                {% else %}
+                    <a href="{% url 'account_login' %}" class="btn btn-sm btn-outline-light btn-auth">Войти</a>
+                {% endif %}
+            </div>
         </div>
     </div>
 </nav>
 
-<div class="container">
+<!-- Контент страницы -->
+<div class="container mt-4">
     {% block content %}{% endblock %}
 </div>
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- 3D Земля -->
 <script type="module" src="{% static 'js/earth.js' %}"></script>
-<div class="container">
-
-</div>
-
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- Наш Earth скрипт -->
-<script type="module" src="{% static 'js/earth.js' %}"></script>
-</body>
-</html>
-
 </body>
 </html>

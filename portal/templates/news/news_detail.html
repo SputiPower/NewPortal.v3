@@ -1,36 +1,68 @@
-{% extends "default.html" %}
+{% extends "base.html" %}
 
 {% load static %}
 {% load censor %}
 
-{% block title %}
-{{ news_item.title }}
-{% endblock %}
+{% block title %}{{ news_item.title }}{% endblock %}
 
 {% block content %}
-<div class="news-container">
-
-    <div class="news-title">
-
+<div class="news-detail-wrapper">
+    <div class="news-card">
+        <h1 class="news-title">{{ news_item.title }}</h1>
+        <p class="news-meta">
+            <span class="news-date">📅 {{ news_item.created_at|date:"d.m.Y H:i" }}</span>
+            <span class="news-author">✍️ {{ news_item.author.user.username }}</span>
+        </p>
+        <div class="news-text">
+            {{ news_item.text|linebreaks|censor }}
+        </div>
     </div>
-
-    <div class="news-date">
-        {{ post.created_at|date:"d.m.Y" }}
-    </div>
-
-    <div class="news-text">
-
-    </div>
-
 </div>
 
-<h2>{{ news_item.title }}</h2>
-<p><small>Дата публикации: {{ news_item.created_at|date:"d.m.Y" }}</small></p>
-<p>{{ news_item.text }}</p>
+<style>
+    .news-detail-wrapper {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 20px;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .news-card {
+        background: #1e293b;
+        color: #e2e8f0;
+        padding: 30px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .news-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #3b82f6;
+        margin-bottom: 12px;
+    }
+
+    .news-meta {
+        display: flex;
+        gap: 20px;
+        font-size: 0.9rem;
+        color: #94a3b8;
+        margin-bottom: 20px;
+    }
+
+    .news-text {
+        line-height: 1.8;
+        color: #cbd5e1;
+    }
+
+    .news-text p {
+        margin-bottom: 1rem;
+    }
+</style>
 {% endblock %}
 
 {% block breadcrumbs %}
-<nav aria-label="breadcrumb">
+<nav aria-label="breadcrumb" class="mt-3">
   <ol class="breadcrumb">
     <li class="breadcrumb-item">
         <a href="{% url 'home' %}">Главная</a>
@@ -44,4 +76,3 @@
   </ol>
 </nav>
 {% endblock %}
-

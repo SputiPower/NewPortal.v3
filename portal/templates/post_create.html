@@ -7,8 +7,40 @@
     <h2>Создать новый пост</h2>
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Создать</button>
+        <div class="mb-3">
+            {{ form.title.label_tag }}
+            {{ form.title }}
+            {% if form.title.errors %}
+                <div class="text-danger">{{ form.title.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.text.label_tag }}
+            {{ form.text }}
+            {% if form.text.errors %}
+                <div class="text-danger">{{ form.text.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            {{ form.type.label_tag }}
+            {{ form.type }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.categories.label_tag }}
+            <ul class="list-unstyled">
+                {% for checkbox in form.categories %}
+                    <li>
+                        {{ checkbox.tag }}
+                        <label>{{ checkbox.choice_label }}</label>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <button type="submit" class="btn btn-success">Создать</button>
     </form>
 </div>
 {% endblock %}

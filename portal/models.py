@@ -1,14 +1,24 @@
+import random
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.apps import apps  # Для динамического импорта Comment
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.conf import settings
 
 
 # ----------------- AUTHOR -----------------
 class Author(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     rating = models.IntegerField(default=0)
+    instagram = models.CharField(max_length=255, blank=True, null=True)
+    telegram = models.CharField(max_length=255, blank=True, null=True)
 
     def update_rating(self):
+        """Обновление рейтинга автора: посты, комментарии, комментарии к его постам"""
+        Comment = apps.get_model('portal', 'Comment')
+
         post_rating = sum(self.post_set.values_list('rating', flat=True)) * 3
         comment_rating = sum(self.user.comment_set.values_list('rating', flat=True))
         post_comment_rating = sum(
@@ -24,13 +34,12 @@ class Author(models.Model):
 
 # ----------------- CATEGORY -----------------
 class Category(models.Model):
-    name = models.CharField(max_length=64, unique=True)
-
-    # 🔥 Подписчики категории (для email-рассылки)
+    name = models.CharField(max_length=100)
+    color = models.CharField(max_length=7)
     subscribers = models.ManyToManyField(
         User,
-        related_name='subscribed_categories',
-        blank=True
+        blank=True,
+        related_name='subscribed_categories'
     )
 
     def __str__(self):
@@ -45,7 +54,6 @@ class Category(models.Model):
 class Post(models.Model):
     ARTICLE = 'AR'
     NEWS = 'NW'
-
     TYPES = [
         (ARTICLE, 'Статья'),
         (NEWS, 'Новость'),
@@ -54,19 +62,16 @@ class Post(models.Model):
     author = models.ForeignKey(Author, on_delete=models.CASCADE)
     type = models.CharField(max_length=2, choices=TYPES)
     created_at = models.DateTimeField(auto_now_add=True)
+    title = models.CharField(max_length=255)
+    text = models.TextField()
+    rating = models.IntegerField(default=0)
+    image = models.ImageField(upload_to='posts/', blank=True, null=True)
 
     categories = models.ManyToManyField(
         Category,
         through='PostCategory',
         related_name='posts'
     )
-
-    title = models.CharField(max_length=255)
-    text = models.TextField()
-    rating = models.IntegerField(default=0)
-
-    # Картинка поста
-    image = models.ImageField(upload_to='posts/', blank=True, null=True)
 
     def like(self):
         self.rating += 1
@@ -86,6 +91,32 @@ class Post(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Пост'
         verbose_name_plural = 'Посты'
+
+    def save(self, *args, **kwargs):
+        new_instance = self.pk is None  # True, если пост создаётся впервые
+        super().save(*args, **kwargs)
+
+        # Отправка уведомления подписчикам категорий при создании нового поста
+        if new_instance:
+            for category in self.categories.all():
+                subscribers = category.subscribers.all()
+                for user in subscribers:
+                    html_content = render_to_string(
+                        'emails/new_article.html',
+                        {
+                            'user': user,
+                            'news': self,
+                            'category': category,
+                        }
+                    )
+                    msg = EmailMultiAlternatives(
+                        subject=self.title,
+                        body=f"Здравствуй, {user.username}. Новая статья в твоём любимом разделе!",
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        to=[user.email]
+                    )
+                    msg.attach_alternative(html_content, "text/html")
+                    msg.send()
 
 
 # ----------------- POST CATEGORY -----------------
@@ -131,18 +162,14 @@ class Product(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
-
     category = models.ForeignKey(
         Category,
         on_delete=models.CASCADE,
         related_name='products'
     )
-
     image = models.ImageField(upload_to='products/', blank=True, null=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
     rating = models.IntegerField(default=0)
 
     def like(self):

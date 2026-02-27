@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -50,7 +51,8 @@ INSTALLED_APPS = [
     'simpleapp',
     'portal.apps.PortalConfig',
     'django_filters',
-    'sign'
+    'sign',
+    'django_apscheduler',
 ]
 
 SITE_ID = 2
@@ -80,6 +82,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'portal.context_processors.categories_processor',
             ],
         },
     },
@@ -147,9 +150,11 @@ ACCOUNT_RATE_LIMITS = {
     'login_failed': '5/5m'
 }
 
-ACCOUNT_EMAIL_VERIFICATION = 'none'
+# работает подтверждение почты, чтобы пользователь получал письмо с активацией
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+# доп. опция: перейти по ссылке сразу подтверждает
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 ACCOUNT_FORMS = {
     'signup': 'sign.forms.CommonSignupForm',
@@ -167,6 +172,48 @@ AUTHENTICATION_BACKENDS = [
 SOCIALACCOUNT_PROVIDERS = {
     'yandex': {}
 }
+
+DEFAULT_FROM_EMAIL = 'noreply@newsportal.com'
+
+
+
+
+import os
+from dotenv import load_dotenv
+
+# Загружаем переменные из .env
+load_dotenv()
+
+EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "gmail").lower()
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+if EMAIL_PROVIDER == "gmail":
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = os.getenv("GMAIL_EMAIL_USER")
+    EMAIL_HOST_PASSWORD = os.getenv("GMAIL_EMAIL_PASSWORD")
+
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Временная проверка
+print("Используемый провайдер:", EMAIL_PROVIDER)
+print("EMAIL_HOST_USER:", EMAIL_HOST_USER)
+print("EMAIL_HOST_PASSWORD есть?", "Да" if EMAIL_HOST_PASSWORD else "Нет")
+
+# APScheduler configuration
+APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
+APSCHEDULER_RUN_NOW_TIMEOUT = 25  # Seconds
+
+
+
+
+
+
+
+
+
 
 
 
