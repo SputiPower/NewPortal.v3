@@ -1,5 +1,5 @@
 from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView, DeleteView
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy, reverse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -17,7 +17,7 @@ from .filters import PostFilter, ProductFilter
 # ----------------- UPGRADE ДО АВТОРА -----------------
 @login_required
 def upgrade(request):
-    authors_group, created = Group.objects.get_or_create(name='authors')
+    authors_group, _ = Group.objects.get_or_create(name='authors')
     if not request.user.groups.filter(name='authors').exists():
         request.user.groups.add(authors_group)
     return redirect(reverse('home'))
@@ -27,11 +27,18 @@ def upgrade(request):
 @login_required
 def subscribe_category(request, pk):
     category = get_object_or_404(Category, pk=pk)
-
-    if request.user not in category.subscribers.all():
+    if request.method == "POST" and request.user not in category.subscribers.all():
         category.subscribers.add(request.user)
+    return redirect(request.META.get('HTTP_REFERER', reverse('home')))
 
-    return redirect(request.META.get('HTTP_REFERER', reverse('news_list')))
+
+# ----------------- ОТПИСКА ОТ КАТЕГОРИИ -----------------
+@login_required
+def unsubscribe_category(request, pk):
+    category = get_object_or_404(Category, pk=pk)
+    if request.method == "POST" and request.user in category.subscribers.all():
+        category.subscribers.remove(request.user)
+    return redirect(request.META.get('HTTP_REFERER', reverse('home')))
 
 
 # ----------------- ГЛАВНАЯ СТРАНИЦА -----------------
@@ -40,12 +47,12 @@ class IndexView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        if self.request.user.is_authenticated:
-            context['is_not_author'] = not self.request.user.groups.filter(
-                name='authors'
-            ).exists()
-
+        user = self.request.user
+        context['is_not_author'] = True
+        if user.is_authenticated:
+            context['is_not_author'] = not user.groups.filter(name='authors').exists()
+        context['latest_news'] = Post.objects.filter(type='NW').order_by('-created_at')[:8]
+        context['latest_articles'] = Post.objects.filter(type='AR').order_by('-created_at')[:8]
         return context
 
 
@@ -80,8 +87,21 @@ class NewsList(BasePostListView):
     type_filter = 'NW'
     filter_class = PostFilter
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # добавляем идентификаторы категорий, на которые подписан пользователь
+        if self.request.user.is_authenticated:
+            context['subscriber_category_ids'] = list(
+                self.request.user.subscribed_categories.values_list('id', flat=True)
+            )
+        else:
+            context['subscriber_category_ids'] = []
+        return context
+
 
 class CategoryPosts(NewsList):
+    template_name = 'news/category_posts.html'
+    
     def get_queryset(self):
         category_id = self.kwargs['pk']
         queryset = super().get_queryset()
@@ -89,7 +109,10 @@ class CategoryPosts(NewsList):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['current_category'] = get_object_or_404(Category, id=self.kwargs['pk'])
+        category = get_object_or_404(Category, id=self.kwargs['pk'])
+        context['current_category'] = category
+        context['subscriber_ids'] = list(category.subscribers.values_list('pk', flat=True))
+        context['categories'] = Category.objects.all()
         return context
 
 
@@ -137,41 +160,23 @@ class NewsCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return self.request.user.groups.filter(name='authors').exists()
 
     def form_valid(self, form):
+        # ограничение: не больше трёх новостей за последние 24 часа
         author, _ = Author.objects.get_or_create(user=self.request.user)
+        from django.utils import timezone
+        from datetime import timedelta
+
+        cutoff = timezone.now() - timedelta(days=1)
+        recent_count = Post.objects.filter(
+            author=author, type='NW', created_at__gte=cutoff
+        ).count()
+        if recent_count >= 3:
+            form.add_error(None, 'Вы уже опубликовали 3 новости за последние 24 часа')
+            return self.form_invalid(form)
+
         form.instance.author = author
         form.instance.type = 'NW'
-
-        response = super().form_valid(form)
-
-        # 🔥 ОТПРАВКА EMAIL ПОДПИСЧИКАМ
-        post = self.object
-        categories = post.categories.all()
-
-        subscribers = set()
-        for category in categories:
-            subscribers.update(category.subscribers.all())
-
-        for user in subscribers:
-            if user.email:
-                html_content = render_to_string(
-                    'news/email_notification.html',
-                    {
-                        'post': post,
-                        'user': user,
-                    }
-                )
-
-                msg = EmailMultiAlternatives(
-                    subject=post.title,
-                    body=f'Здравствуй, {user.username}. Новая статья в твоём любимом разделе!',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[user.email],
-                )
-
-                msg.attach_alternative(html_content, "text/html")
-                msg.send()
-
-        return response
+        # письмо рассылки теперь обрабатывается в методе save модели
+        return super().form_valid(form)
 
 
 class ArticleCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
@@ -254,3 +259,14 @@ class NewsSearchView(BasePostListView):
     type_filter = 'NW'
     filter_class = PostFilter
     paginate_by = 10
+
+
+# ----------------- STATIC / TEST -----------------
+def word_box_view(request):
+    return render(request, 'portal/word_box.html')
+
+
+from .utils import send_test_email
+def test_email_view(request):
+    send_test_email()  # отправка в фоне
+    return render(request, "portal/test_email.html", {"message": "✅ Письмо отправляется в фоне! Проверь почту через несколько секунд."})

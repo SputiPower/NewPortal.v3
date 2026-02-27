@@ -10824,3 +10824,52 @@ textarea.form-control-lg {
     display: none !important;
   }
 }
+
+/* Главная типографика */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8f9fa;
+  color: #212529;
+}
+
+/* Категории */
+.category-link {
+  position: relative;
+  transition: color 0.3s ease;
+}
+.category-link::after {
+  content: "";
+  display: block;
+  height: 2px;
+  background: #4caf50;
+  transition: width 0.3s;
+  width: 0;
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+}
+.category-link:hover {
+  color: #4caf50;
+}
+.category-link:hover::after {
+  width: 100%;
+}
+
+/* Кнопки */
+.btn:hover {
+  transform: scale(1.05);
+  transition: all 0.3s ease;
+}
+
+/* Анимация появления контента */
+.fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeIn 0.8s forwards;
+}
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

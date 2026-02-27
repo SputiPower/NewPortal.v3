@@ -1,9 +1,10 @@
 from django.urls import path, include
+from . import views
 from .views import (
     IndexView, NewsList, NewsDetail, ArticleList, ArticleDetail,
     like_post, CategoryPosts, ProductList, ProductDetail,
     NewsSearchView, NewsCreateView, ArticleCreateView,
-    PostUpdateView, upgrade, subscribe_category
+    PostUpdateView, upgrade, subscribe_category, unsubscribe_category, test_email_view
 )
 
 urlpatterns = [
@@ -24,6 +25,8 @@ urlpatterns = [
 
     # Категории
     path('category/<int:pk>/', CategoryPosts.as_view(), name='category_posts'),
+    path('category/<int:pk>/subscribe/', subscribe_category, name='subscribe_category'),
+    path('category/<int:pk>/unsubscribe/', unsubscribe_category, name='unsubscribe_category'),
 
     # Продукты
     path('products/', ProductList.as_view(), name='products_list'),
@@ -37,7 +40,7 @@ urlpatterns = [
 
     # Upgrade route
     path('upgrade/', upgrade, name='upgrade'),
-    path('category/<int:pk>/subscribe/', subscribe_category, name='subscribe_category'),
+    path('words/', views.word_box_view, name='word_box'),
+    path('test-email/', test_email_view, name='test-email'),
 ]
-
 

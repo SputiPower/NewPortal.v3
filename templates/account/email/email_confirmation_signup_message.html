@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добро пожаловать</title>
+</head>
+<body>
+    {% load account %}
+    <h1>Спасибо за регистрацию, {{ user.email }}!</h1>
+    <p>Для того чтобы активировать аккаунт, перейдите по ссылке ниже:</p>
+    <p><a href="{{ activate_url }}">Активировать аккаунт</a></p>
+    <p>Если ссылка не работает, скопируйте её в адресную строку браузера.</p>
+    <p>С уважением,<br>команда News Portal</p>
+</body>
+</html>

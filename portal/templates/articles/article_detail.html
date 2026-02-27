@@ -6,23 +6,166 @@
 {% block title %}{{ article.title }}{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-
-    <h1>{{ article.title|censor }}</h1>
-    <p class="text-muted">
-        Автор: {{ article.author.user.username }} | Дата: {{ article.created_at|date:"d.m.Y H:i" }}
-    </p>
+<div class="article-detail-wrapper">
+    <div class="article-header">
+        <h1 class="article-detail-title">{{ article.title|censor }}</h1>
+        <div class="article-detail-meta">
+            <span class="meta-item">✍️ Автор: <strong>{{ article.author.user.username }}</strong></span>
+            <span class="meta-item">📅 Дата публикации: <strong>{{ article.created_at|date:"d.m.Y в H:i" }}</strong></span>
+            <span class="meta-item">⭐ Рейтинг: <strong>{{ article.rating }}</strong></span>
+        </div>
+    </div>
 
     {% if article.image %}
-        <img src="{{ article.image.url }}" class="img-fluid mb-4" alt="{{ article.title }}">
+        <div class="article-detail-image">
+            <img src="{{ article.image.url }}" alt="{{ article.title }}">
+        </div>
     {% endif %}
 
-    <div class="mb-4">
+    <div class="article-detail-content">
         {{ article.text|linebreaks|censor }}
     </div>
 
-    <p>Рейтинг: {{ article.rating }}</p>
-
-    <a href="{% url 'article_list' %}" class="btn btn-primary">Назад к статьям</a>
+    <div class="article-footer">
+        <a href="{% url 'article_list' %}" class="btn-back">← Вернуться к статьям</a>
+    </div>
 </div>
+
+<style>
+    .article-detail-wrapper {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .article-header {
+        margin-bottom: 30px;
+        padding-bottom: 30px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .article-detail-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 15px;
+        line-height: 1.3;
+    }
+
+    .article-detail-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .meta-item {
+        color: #64748b;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .meta-item strong {
+        color: #2563eb;
+        font-weight: 600;
+    }
+
+    .article-detail-image {
+        width: 100%;
+        max-height: 500px;
+        border-radius: 16px;
+        overflow: hidden;
+        margin-bottom: 40px;
+        box-shadow: 0 10px 30px rgba(37, 99, 235, 0.15);
+    }
+
+    .article-detail-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .article-detail-content {
+        background: #f8fafc;
+        padding: 40px;
+        border-radius: 16px;
+        line-height: 1.8;
+        color: #334155;
+        margin-bottom: 40px;
+        border-left: 4px solid #2563eb;
+    }
+
+    .article-detail-content p {
+        margin-bottom: 20px;
+        font-size: 1.05rem;
+    }
+
+    .article-detail-content p:last-child {
+        margin-bottom: 0;
+    }
+
+    .article-detail-content strong {
+        color: #1e293b;
+        font-weight: 700;
+    }
+
+    .article-detail-content em {
+        color: #2563eb;
+        font-style: italic;
+    }
+
+    .article-footer {
+        text-align: left;
+        padding-top: 30px;
+    }
+
+    .btn-back {
+        display: inline-block;
+        background: #2563eb;
+        color: white;
+        padding: 14px 28px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: 2px solid #2563eb;
+    }
+
+    .btn-back:hover {
+        background: #1e40af;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-back:active {
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+        .article-detail-wrapper {
+            padding: 15px;
+        }
+
+        .article-detail-title {
+            font-size: 1.8rem;
+        }
+
+        .article-detail-meta {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .article-detail-content {
+            padding: 20px;
+        }
+
+        .article-detail-content p {
+            font-size: 1rem;
+        }
+    }
+</style>
 {% endblock %}
