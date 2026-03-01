@@ -2,15 +2,22 @@ from django.views.generic import ListView, DetailView, TemplateView, CreateView,
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy, reverse
 from django.views.decorators.http import require_POST
+from django.http import JsonResponse
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group
+from django.contrib import messages
+from django.contrib.auth.views import PasswordChangeView
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
+from django.db.models import Q, Count, Case, When, Value, IntegerField, F, Max
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+from datetime import timedelta
 
-from .models import Post, Category, Author, Product
-from .forms import PostForm
+from .models import Post, Category, Author, Product, PostMedia, Subscription, Reaction
+from .forms import PostForm, ProfileForm, EmailChangeForm
 from .filters import PostFilter, ProductFilter
 
 
@@ -27,8 +34,10 @@ def upgrade(request):
 @login_required
 def subscribe_category(request, pk):
     category = get_object_or_404(Category, pk=pk)
-    if request.method == "POST" and request.user not in category.subscribers.all():
-        category.subscribers.add(request.user)
+    if request.method == "POST":
+        if request.user not in category.subscribers.all():
+            category.subscribers.add(request.user)
+        Subscription.objects.get_or_create(user=request.user, category=category, author=None)
     return redirect(request.META.get('HTTP_REFERER', reverse('home')))
 
 
@@ -36,8 +45,26 @@ def subscribe_category(request, pk):
 @login_required
 def unsubscribe_category(request, pk):
     category = get_object_or_404(Category, pk=pk)
-    if request.method == "POST" and request.user in category.subscribers.all():
-        category.subscribers.remove(request.user)
+    if request.method == "POST":
+        if request.user in category.subscribers.all():
+            category.subscribers.remove(request.user)
+        Subscription.objects.filter(user=request.user, category=category).delete()
+    return redirect(request.META.get('HTTP_REFERER', reverse('home')))
+
+
+@login_required
+def subscribe_author(request, author_id):
+    author = get_object_or_404(Author, pk=author_id)
+    if request.method == "POST":
+        Subscription.objects.get_or_create(user=request.user, author=author, category=None)
+    return redirect(request.META.get('HTTP_REFERER', reverse('home')))
+
+
+@login_required
+def unsubscribe_author(request, author_id):
+    author = get_object_or_404(Author, pk=author_id)
+    if request.method == "POST":
+        Subscription.objects.filter(user=request.user, author=author).delete()
     return redirect(request.META.get('HTTP_REFERER', reverse('home')))
 
 
@@ -64,13 +91,27 @@ class BasePostListView(ListView):
     type_filter = None
 
     def get_queryset(self):
-        queryset = Post.objects.all()
+        queryset = Post.objects.all().annotate(
+            likes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.LIKE), distinct=True),
+            dislikes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.DISLIKE), distinct=True),
+        )
         if self.type_filter:
             queryset = queryset.filter(type=self.type_filter)
         if self.filter_class:
             self.filterset = self.filter_class(self.request.GET, queryset)
-            return self.filterset.qs.order_by('-created_at')
-        return queryset.order_by('-created_at')
+            queryset = self.filterset.qs
+
+        if self.request.user.is_authenticated:
+            user_reactions = Reaction.objects.filter(user=self.request.user).values('post', 'reaction_type')
+            queryset = queryset.annotate(
+                user_reaction=Max(
+                    Case(
+                        When(reactions__user=self.request.user, then=F('reactions__reaction_type')),
+                        default=Value(None),
+                    )
+                )
+            )
+        return queryset.order_by('-created_at').distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -122,7 +163,31 @@ class NewsDetail(DetailView):
     context_object_name = 'news_item'
 
     def get_queryset(self):
-        return Post.objects.filter(type='NW')
+        queryset = Post.objects.filter(type='NW').annotate(
+            likes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.LIKE), distinct=True),
+            dislikes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.DISLIKE), distinct=True),
+        )
+        if self.request.user.is_authenticated:
+            queryset = queryset.annotate(
+                user_reaction=Max(
+                    Case(
+                        When(reactions__user=self.request.user, then=F('reactions__reaction_type')),
+                        default=Value(None),
+                    )
+                )
+            )
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        news_item = context['news_item']
+        if self.request.user.is_authenticated:
+            context['is_author_subscribed'] = Subscription.objects.filter(
+                user=self.request.user, author=news_item.author
+            ).exists()
+        else:
+            context['is_author_subscribed'] = False
+        return context
 
 
 # ----------------- ARTICLES -----------------
@@ -146,7 +211,31 @@ class ArticleDetail(DetailView):
     context_object_name = 'article'
 
     def get_queryset(self):
-        return Post.objects.filter(type='AR')
+        queryset = Post.objects.filter(type='AR').annotate(
+            likes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.LIKE), distinct=True),
+            dislikes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.DISLIKE), distinct=True),
+        )
+        if self.request.user.is_authenticated:
+            queryset = queryset.annotate(
+                user_reaction=Max(
+                    Case(
+                        When(reactions__user=self.request.user, then=F('reactions__reaction_type')),
+                        default=Value(None),
+                    )
+                )
+            )
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        article = context['article']
+        if self.request.user.is_authenticated:
+            context['is_author_subscribed'] = Subscription.objects.filter(
+                user=self.request.user, author=article.author
+            ).exists()
+        else:
+            context['is_author_subscribed'] = False
+        return context
 
 
 # ----------------- CREATE POST -----------------
@@ -158,6 +247,12 @@ class NewsCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
     def test_func(self):
         return self.request.user.groups.filter(name='authors').exists()
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['require_images'] = True
+        kwargs['max_images'] = 3
+        return kwargs
 
     def form_valid(self, form):
         # ограничение: не больше трёх новостей за последние 24 часа
@@ -175,8 +270,10 @@ class NewsCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
         form.instance.author = author
         form.instance.type = 'NW'
-        # письмо рассылки теперь обрабатывается в методе save модели
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        for image in form.cleaned_data.get('images', []):
+            PostMedia.objects.create(post=self.object, image=image)
+        return response
 
 
 class ArticleCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
@@ -188,11 +285,20 @@ class ArticleCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def test_func(self):
         return self.request.user.groups.filter(name='authors').exists()
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['require_images'] = True
+        kwargs['max_images'] = 3
+        return kwargs
+
     def form_valid(self, form):
         author, _ = Author.objects.get_or_create(user=self.request.user)
         form.instance.author = author
         form.instance.type = 'AR'
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        for image in form.cleaned_data.get('images', []):
+            PostMedia.objects.create(post=self.object, image=image)
+        return response
 
 
 # ----------------- UPDATE POST -----------------
@@ -204,6 +310,21 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_queryset(self):
         return Post.objects.filter(author__user=self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['require_images'] = False
+        kwargs['max_images'] = 3
+        return kwargs
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        for image in form.cleaned_data.get('images', []):
+            PostMedia.objects.create(post=self.object, image=image)
+        return response
+
+    def get_success_url(self):
+        return self.object.get_absolute_url()
 
 
 # ----------------- DELETE POST -----------------
@@ -222,6 +343,170 @@ def like_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     post.like()
     return redirect(request.META.get('HTTP_REFERER', '/'))
+
+
+@login_required
+@require_POST
+def react_post(request, post_id):
+    post = get_object_or_404(Post, pk=post_id)
+    reaction_type = request.POST.get('reaction_type')
+    if reaction_type not in {Reaction.LIKE, Reaction.DISLIKE}:
+        return JsonResponse({'ok': False, 'error': 'invalid_reaction'}, status=400)
+
+    reaction, created = Reaction.objects.get_or_create(
+        user=request.user,
+        post=post,
+        defaults={'reaction_type': reaction_type},
+    )
+    if not created and reaction.reaction_type != reaction_type:
+        reaction.reaction_type = reaction_type
+        reaction.save(update_fields=['reaction_type', 'updated_at'])
+
+    likes_count = post.reactions.filter(reaction_type=Reaction.LIKE).count()
+    dislikes_count = post.reactions.filter(reaction_type=Reaction.DISLIKE).count()
+    post.rating = likes_count - dislikes_count
+    post.save(update_fields=['rating'])
+
+    return JsonResponse({
+        'ok': True,
+        'reaction': reaction_type,
+        'likes_count': likes_count,
+        'dislikes_count': dislikes_count,
+        'rating': post.rating,
+    })
+
+
+@login_required
+def profile_view(request):
+    user = request.user
+    profile_form = ProfileForm(instance=user)
+    email_form = EmailChangeForm(user=user)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'update_profile':
+            profile_form = ProfileForm(request.POST, instance=user)
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, 'Профиль обновлён.')
+                return redirect('profile')
+        elif action == 'change_email':
+            email_form = EmailChangeForm(user, request.POST)
+            if email_form.is_valid():
+                user.email = email_form.cleaned_data['email']
+                user.save(update_fields=['email'])
+                messages.success(request, 'Email успешно изменён.')
+                return redirect('profile')
+
+    user_author = Author.objects.filter(user=user).first()
+    my_news = Post.objects.filter(author__user=user).order_by('-created_at')
+    my_news_count = my_news.filter(type=Post.NEWS).count()
+    liked_news = Post.objects.filter(
+        type=Post.NEWS,
+        reactions__user=user,
+        reactions__reaction_type=Reaction.LIKE
+    ).distinct().order_by('-created_at')[:20]
+    category_subscriptions = Subscription.objects.filter(user=user, category__isnull=False).select_related('category')
+    author_subscriptions = Subscription.objects.filter(user=user, author__isnull=False).select_related('author__user')
+
+    return render(request, 'profile.html', {
+        'profile_form': profile_form,
+        'email_form': email_form,
+        'my_news': my_news[:20],
+        'my_news_count': my_news_count,
+        'liked_news': liked_news,
+        'category_subscriptions': category_subscriptions,
+        'author_subscriptions': author_subscriptions,
+        'user_author': user_author,
+    })
+
+
+@login_required
+def change_email_view(request):
+    form = EmailChangeForm(request.user, request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        request.user.email = form.cleaned_data['email']
+        request.user.save(update_fields=['email'])
+        messages.success(request, 'Email успешно изменён.')
+        return redirect('profile')
+    return render(request, 'account/email_change.html', {'form': form})
+
+
+class UserPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
+    template_name = 'account/password_change.html'
+    success_url = reverse_lazy('profile')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Пароль успешно изменён.')
+        return super().form_valid(form)
+
+
+class SmartFeedView(LoginRequiredMixin, ListView):
+    model = Post
+    template_name = 'feed.html'
+    context_object_name = 'news'
+    paginate_by = 10
+
+    def get_queryset(self):
+        user = self.request.user
+        subscribed_category_ids = list(
+            Subscription.objects.filter(user=user, category__isnull=False).values_list('category_id', flat=True)
+        )
+        subscribed_author_ids = list(
+            Subscription.objects.filter(user=user, author__isnull=False).values_list('author_id', flat=True)
+        )
+        liked_category_ids = list(
+            Category.objects.filter(
+                posts__reactions__user=user,
+                posts__reactions__reaction_type=Reaction.LIKE
+            ).values_list('id', flat=True).distinct()
+        )
+        recent_cutoff = timezone.now() - timedelta(days=2)
+
+        queryset = Post.objects.filter(type=Post.NEWS).annotate(
+            likes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.LIKE), distinct=True),
+            dislikes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.DISLIKE), distinct=True),
+            category_match=Count('categories', filter=Q(categories__in=subscribed_category_ids), distinct=True),
+            author_match=Case(
+                When(author_id__in=subscribed_author_ids, then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ),
+            similar_match=Count('categories', filter=Q(categories__in=liked_category_ids), distinct=True),
+            recent_bonus=Case(
+                When(created_at__gte=recent_cutoff, then=Value(2)),
+                default=Value(0),
+                output_field=IntegerField(),
+            ),
+            user_reaction=Max(
+                Case(
+                    When(reactions__user=user, then=F('reactions__reaction_type')),
+                    default=Value(None),
+                )
+            ),
+        ).annotate(
+            relevance_score=(
+                F('category_match') * Value(5) +
+                F('author_match') * Value(7) +
+                F('similar_match') * Value(3) +
+                F('likes_count') * Value(2) -
+                F('dislikes_count') +
+                F('recent_bonus')
+            ),
+            popularity_score=(F('likes_count') * Value(2) - F('dislikes_count')),
+        ).distinct()
+
+        sort = self.request.GET.get('sort', 'relevance')
+        if sort == 'popular':
+            return queryset.order_by('-popularity_score', '-created_at')
+        if sort == 'date':
+            return queryset.order_by('-created_at')
+        return queryset.order_by('-relevance_score', '-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['sort'] = self.request.GET.get('sort', 'relevance')
+        return context
 
 
 # ----------------- PRODUCTS -----------------

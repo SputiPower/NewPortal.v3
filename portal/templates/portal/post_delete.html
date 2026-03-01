@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Удалить пост{% endblock %}
+{% block body_class %}premium-page{% endblock %}
+
+{% block content %}
+<div class="confirm-shell">
+  <section class="confirm-card glass-surface reveal">
+    <h1 class="detail-title">Удалить пост?</h1>
+    <p class="page-subtitle">Это действие необратимо.</p>
+
+    <div class="detail-body" style="text-align:left; margin-top:1rem;">
+      <strong>{{ object.title }}</strong>
+      <p>{{ object.text|truncatechars:180 }}</p>
+    </div>
+
+    <div class="warning-box">После удаления пост и связанные комментарии будут удалены окончательно.</div>
+
+    <div class="form-actions" style="justify-content:center;">
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn-premium btn-danger-premium">Да, удалить</button>
+      </form>
+      <a href="{% if object.type == 'NW' %}{% url 'news_list' %}{% else %}{% url 'article_list' %}{% endif %}" class="btn-premium btn-ghost-premium">Отмена</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

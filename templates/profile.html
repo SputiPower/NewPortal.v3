@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}NewsSputi | Профиль{% endblock %}
+{% block body_class %}f66-body{% endblock %}
+
+{% block content %}
+<div class="f66-shell">
+  <section class="f66-section" style="padding-top:8rem;">
+    <div class="f66-container profile-grid">
+      <aside class="profile-card glass-elevated reveal-on-scroll">
+        <h2>Профиль</h2>
+        <p><strong>Username:</strong> {{ user.username }}</p>
+        <p><strong>Email:</strong> {{ user.email|default:'Не указан' }}</p>
+        <p><strong>Дата регистрации:</strong> {{ user.date_joined|date:"d.m.Y" }}</p>
+        <p><strong>Опубликовано новостей:</strong> {{ my_news_count }}</p>
+
+        <div class="security-links">
+          <a href="{% url 'password_change' %}" class="f66-btn f66-btn-ghost">Сменить пароль</a>
+          <a href="{% url 'email_change' %}" class="f66-btn f66-btn-ghost">Сменить email</a>
+          <a href="{% url 'account_reset_password' %}" class="f66-btn f66-btn-ghost">Восстановление пароля</a>
+          <a href="{% url 'smart_feed' %}" class="f66-btn f66-btn-primary">Умная лента</a>
+        </div>
+      </aside>
+
+      <section class="profile-main">
+        <div class="profile-card glass-elevated reveal-on-scroll">
+          <h3>Изменить профиль</h3>
+          <form method="post" class="post-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="update_profile">
+            {% for field in profile_form %}
+            <div class="form-field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.errors %}<span class="form-error">{{ field.errors.0 }}</span>{% endif %}
+            </div>
+            {% endfor %}
+            <button class="f66-btn f66-btn-primary" type="submit">Сохранить</button>
+          </form>
+        </div>
+
+        <div class="profile-card glass-elevated reveal-on-scroll">
+          <h3>Сменить email</h3>
+          <form method="post" class="post-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="change_email">
+            {% for field in email_form %}
+            <div class="form-field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+              {% if field.errors %}<span class="form-error">{{ field.errors.0 }}</span>{% endif %}
+            </div>
+            {% endfor %}
+            <button class="f66-btn f66-btn-primary" type="submit">Обновить email</button>
+          </form>
+        </div>
+
+        <div class="profile-card glass-elevated reveal-on-scroll">
+          <h3>Мои подписки</h3>
+          <div class="chips">
+            {% for s in category_subscriptions %}
+              <span class="chip">Категория: {{ s.category.name }}</span>
+            {% empty %}
+              <span class="chip">Нет подписок на категории</span>
+            {% endfor %}
+            {% for s in author_subscriptions %}
+              <span class="chip">Автор: {{ s.author.user.username }}</span>
+            {% empty %}
+              <span class="chip">Нет подписок на авторов</span>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="profile-card glass-elevated reveal-on-scroll">
+          <h3>Мои новости</h3>
+          <ul class="profile-list">
+            {% for post in my_news %}
+            <li><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></li>
+            {% empty %}
+            <li>Публикаций пока нет.</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="profile-card glass-elevated reveal-on-scroll">
+          <h3>Лайкнутые новости</h3>
+          <ul class="profile-list">
+            {% for post in liked_news %}
+            <li><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></li>
+            {% empty %}
+            <li>Лайков пока нет.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </section>
+    </div>
+  </section>
+</div>
+{% endblock %}

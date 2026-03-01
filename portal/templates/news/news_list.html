@@ -1,411 +1,140 @@
 {% extends 'base.html' %}
-
 {% load static %}
 {% load censor %}
 
-{% block title %}Новости{% endblock %}
+{% block title %}NewsSputi | Лента новостей{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<div class="news-wrapper">
-    <h1 class="main-title">✨ Новости</h1>
-    <p class="subtitle">Самые свежие новости и обновления</p>
+<div class="f66-shell">
+  <section class="f66-hero" id="top">
+    <div class="f66-hero-glow"></div>
+    <div class="f66-container">
+      <p class="f66-kicker reveal-on-scroll">NewsSputi • Live Feed</p>
+      <h1 class="f66-title reveal-on-scroll">Новости, которые формируют картину мира.</h1>
+      <p class="f66-subtitle reveal-on-scroll">Премиальная лента с глубоким визуалом, быстрым восприятием и динамическими категориями.</p>
+      <div class="f66-actions reveal-on-scroll">
+        <a href="#feed" class="f66-btn f66-btn-primary">Перейти к ленте</a>
+        <a href="#categories" class="f66-btn f66-btn-ghost">Категории</a>
+      </div>
+    </div>
+  </section>
 
-    <!-- Категории с подпиской -->
-    <div class="categories-section">
-        <h2 class="section-title">Категории</h2>
-        <div class="categories-grid">
-            {% for category in categories %}
-                <div class="category-card-item">
-                    <a href="{% url 'category_posts' category.id %}" class="category-link" style="border-color: {{ category.color }};">
-                        <span class="category-badge" style="background-color: {{ category.color }};">{{ category.name }}</span>
-                    </a>
-                    {% if user.is_authenticated %}
-                        {% if category.id in subscriber_category_ids %}
-                            <form action="{% url 'unsubscribe_category' category.id %}" method="post" class="category-form">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-quick-action btn-unsubscribe" title="Отписаться">✓</button>
-                            </form>
-                        {% else %}
-                            <form action="{% url 'subscribe_category' category.id %}" method="post" class="category-form">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-quick-action btn-subscribe" title="Подписаться">🔔</button>
-                            </form>
-                        {% endif %}
-                    {% else %}
-                        <a href="{% url 'account_login' %}" class="btn-quick-action btn-login" title="Войдите для подписки">🔒</a>
-                    {% endif %}
-                </div>
-            {% endfor %}
+  <section class="f66-section" id="categories">
+    <div class="f66-container">
+      <header class="f66-section-head reveal-on-scroll">
+        <p class="f66-kicker">Категории</p>
+        <h2>Настройте информационный поток</h2>
+      </header>
+
+      <div class="categories-grid-premium">
+        {% for category in categories %}
+        <div class="category-item glass-elevated reveal-on-scroll">
+          <a href="{% url 'category_posts' category.id %}" class="category-chip" style="--category-color: {{ category.color|default:'#8f8f94' }};">
+            <span>{{ category.name }}</span>
+          </a>
+          {% if user.is_authenticated %}
+            {% if category.id in subscriber_category_ids %}
+              <form action="{% url 'unsubscribe_category' category.id %}" method="post" class="category-action-form">
+                {% csrf_token %}
+                <button type="submit" class="category-action-btn is-on" aria-label="Отписаться">Подписка</button>
+              </form>
+            {% else %}
+              <form action="{% url 'subscribe_category' category.id %}" method="post" class="category-action-form">
+                {% csrf_token %}
+                <button type="submit" class="category-action-btn" aria-label="Подписаться">Подписаться</button>
+              </form>
+            {% endif %}
+          {% else %}
+          <a href="{% url 'account_login' %}" class="category-action-btn login-link">Войти</a>
+          {% endif %}
         </div>
-    </div>
-
-    <!-- Фильтры -->
-    <div class="filter-section">
-        <form method="get" class="filter-form">
-            {{ filterset.form.as_p }}
-            <button type="submit" class="btn-filter">Применить</button>
-        </form>
-    </div>
-
-    <!-- Сетка новостей -->
-    <div class="news-grid">
-        {% for item in news %}
-            <div class="news-card-item">
-                <div class="news-card">
-                    <h3 class="news-card-title">
-                        <a href="{% url 'news_detail' item.id %}">{{ item.title|censor }}</a>
-                    </h3>
-                    <p class="news-meta">
-                        <span class="news-date">📅 {{ item.created_at|date:"d.m.Y H:i" }}</span>
-                        <span class="news-author">✍️ {{ item.author.user.username }}</span>
-                    </p>
-                    <p class="news-text">{{ item.text|truncatechars:120|censor }}</p>
-                    <div class="news-card-footer">
-                        <a href="{% url 'news_detail' item.id %}" class="btn-read-more">Читать →</a>
-                        <span class="news-rating">⭐ {{ item.rating }}</span>
-                    </div>
-                </div>
-            </div>
-        {% empty %}
-            <p class="empty-message">Новостей нет</p>
         {% endfor %}
+      </div>
     </div>
+  </section>
 
-    <!-- Пагинация -->
-    {% with request.GET.urlencode as query_params %}
-    {% if is_paginated %}
-        <nav class="pagination-wrapper">
-            <ul class="pagination-list">
-                {% if page_obj.has_previous %}
-                    <li><a href="?{{ query_params }}&page=1" class="page-link">Первая</a></li>
-                    <li><a href="?{{ query_params }}&page={{ page_obj.previous_page_number }}" class="page-link">«</a></li>
-                {% endif %}
+  <section class="f66-section" id="feed">
+    <div class="f66-container">
+      <header class="f66-section-head reveal-on-scroll">
+        <p class="f66-kicker">Фильтр</p>
+        <h2>Точная настройка выдачи</h2>
+      </header>
 
-                {% for num in page_obj.paginator.page_range %}
-                    {% if num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %}
-                        <li><a href="?{{ query_params }}&page={{ num }}" class="page-link {% if num == page_obj.number %}active{% endif %}">{{ num }}</a></li>
-                    {% endif %}
-                {% endfor %}
+      <div class="panel glass-elevated reveal-on-scroll">
+        <form method="get" class="filter-form-premium">
+          {{ filterset.form.as_p }}
+          <button type="submit" class="f66-btn f66-btn-primary">Применить</button>
+        </form>
+      </div>
 
-                {% if page_obj.has_next %}
-                    <li><a href="?{{ query_params }}&page={{ page_obj.next_page_number }}" class="page-link">»</a></li>
-                    <li><a href="?{{ query_params }}&page={{ page_obj.paginator.num_pages }}" class="page-link">Последняя</a></li>
-                {% endif %}
-            </ul>
-        </nav>
-    {% endif %}
-    {% endwith %}
+      <div class="f66-news-grid">
+        {% for item in news %}
+        <article class="f66-news-card glass-elevated reveal-on-scroll tilt-card" data-tilt-card>
+          {% with media_preview=item.media_files.first %}
+            {% if item.image %}
+            <a href="{% url 'news_detail' item.id %}" class="f66-card-media">
+              <img src="{{ item.image.url }}" alt="{{ item.title|censor }}">
+            </a>
+            {% elif media_preview %}
+            <a href="{% url 'news_detail' item.id %}" class="f66-card-media">
+              <img src="{{ media_preview.image.url }}" alt="{{ item.title|censor }}">
+            </a>
+            {% else %}
+            <a href="{% url 'news_detail' item.id %}" class="f66-card-media f66-media-fallback" aria-label="Открыть новость">
+              <span>News</span>
+            </a>
+            {% endif %}
+          {% endwith %}
+
+          <div class="f66-card-body">
+            <p class="f66-meta">{{ item.created_at|date:"d.m.Y H:i" }} • {{ item.author.user.username }}</p>
+            <h3><a href="{% url 'news_detail' item.id %}">{{ item.title|censor }}</a></h3>
+            <p>{{ item.text|truncatechars:170|censor }}</p>
+            <div class="f66-card-footer">
+              <a href="{% url 'news_detail' item.id %}" class="f66-link">Читать</a>
+              <span class="f66-rating">Рейтинг {{ item.rating }}</span>
+            </div>
+            <div class="reaction-row" data-post-id="{{ item.id }}">
+              <button class="reaction-btn {% if item.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like" aria-label="Лайк">
+                👍 <span data-like-count>{{ item.likes_count|default:0 }}</span>
+              </button>
+              <button class="reaction-btn {% if item.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike" aria-label="Дизлайк">
+                👎 <span data-dislike-count>{{ item.dislikes_count|default:0 }}</span>
+              </button>
+            </div>
+          </div>
+        </article>
+        {% empty %}
+        <div class="f66-empty glass-elevated reveal-on-scroll">
+          <h3>Пока новостей нет</h3>
+          <p>Скоро здесь появятся свежие публикации.</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% with request.GET.urlencode as query_params %}
+      {% if is_paginated %}
+      <nav class="pagination-premium" aria-label="Пагинация">
+        {% if page_obj.has_previous %}
+          <a href="?{{ query_params }}&page=1">Первая</a>
+          <a href="?{{ query_params }}&page={{ page_obj.previous_page_number }}">Назад</a>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+          {% if num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %}
+            <a href="?{{ query_params }}&page={{ num }}" class="{% if num == page_obj.number %}is-active{% endif %}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+          <a href="?{{ query_params }}&page={{ page_obj.next_page_number }}">Вперёд</a>
+          <a href="?{{ query_params }}&page={{ page_obj.paginator.num_pages }}">Последняя</a>
+        {% endif %}
+      </nav>
+      {% endif %}
+      {% endwith %}
+    </div>
+  </section>
 </div>
-
-<style>
-    .news-wrapper {
-        max-width: 1100px;
-        margin: 40px auto;
-        padding: 0 20px;
-        font-family: 'Inter', sans-serif;
-    }
-
-    .main-title {
-        font-weight: 700;
-        text-align: center;
-        font-size: 3rem;
-        margin-bottom: 8px;
-        color: #1e293b;
-    }
-
-    .subtitle {
-        text-align: center;
-        color: #64748b;
-        margin-bottom: 40px;
-        font-size: 1.15rem;
-    }
-
-    /* Категории */
-    .categories-section {
-        margin-bottom: 40px;
-    }
-
-    .section-title {
-        font-weight: 700;
-        font-size: 1.8rem;
-        text-align: center;
-        margin-bottom: 25px;
-        color: #1e293b;
-    }
-
-    .categories-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 12px;
-        margin-bottom: 30px;
-    }
-
-    .category-card-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .category-link {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 10px 12px;
-        border: 2px solid;
-        border-radius: 10px;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        background: white;
-    }
-
-    .category-link:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2);
-    }
-
-    .category-badge {
-        color: white;
-        padding: 5px 10px;
-        border-radius: 6px;
-        font-weight: 600;
-        font-size: 12px;
-    }
-
-    .category-form {
-        margin: 0;
-    }
-
-    .btn-quick-action {
-        width: 36px;
-        height: 36px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 16px;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        font-weight: 600;
-    }
-
-    .btn-subscribe {
-        background: #2563eb;
-        color: white;
-        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-    }
-
-    .btn-subscribe:hover {
-        background: #1e40af;
-        transform: scale(1.1);
-        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.5);
-    }
-
-    .btn-unsubscribe {
-        background: #10b981;
-        color: white;
-        box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
-    }
-
-    .btn-unsubscribe:hover {
-        background: #059669;
-        transform: scale(1.1);
-        box-shadow: 0 6px 14px rgba(16, 185, 129, 0.5);
-    }
-
-    .btn-login {
-        background: #6b7280;
-        color: white;
-        box-shadow: 0 4px 10px rgba(107, 114, 128, 0.3);
-        text-decoration: none;
-    }
-
-    /* Фильтры */
-    .filter-section {
-        background: #f8fafc;
-        padding: 20px;
-        border-radius: 12px;
-        margin-bottom: 40px;
-        border: 1px solid #e2e8f0;
-    }
-
-    .filter-form {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        align-items: flex-end;
-    }
-
-    .filter-form p {
-        margin: 0;
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        font-size: 14px;
-    }
-
-    .btn-filter {
-        background: #2563eb;
-        color: white;
-        border: none;
-        padding: 10px 24px;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .btn-filter:hover {
-        background: #1e40af;
-        transform: translateY(-2px);
-    }
-
-    /* Сетка новостей */
-    .news-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 24px;
-        margin-bottom: 40px;
-    }
-
-    .news-card {
-        background: #1e293b;
-        border-radius: 16px;
-        padding: 24px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        height: 100%;
-        color: #e2e8f0;
-        transition: transform 0.3s ease;
-    }
-
-    .news-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 15px 50px rgba(37, 99, 235, 0.2);
-    }
-
-    .news-card-title {
-        font-size: 1.3rem;
-        margin-bottom: 12px;
-        font-weight: 700;
-        color: #3b82f6;
-    }
-
-    .news-card-title a {
-        color: #3b82f6;
-        text-decoration: none;
-        transition: color 0.3s ease;
-    }
-
-    .news-card-title a:hover {
-        color: #60a5fa;
-    }
-
-    .news-meta {
-        display: flex;
-        gap: 16px;
-        font-size: 0.85rem;
-        color: #94a3b8;
-        margin-bottom: 12px;
-    }
-
-    .news-text {
-        flex-grow: 1;
-        font-size: 0.95rem;
-        color: #cbd5e1;
-        margin-bottom: 16px;
-        line-height: 1.5;
-    }
-
-    .news-card-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 16px;
-        padding-top: 16px;
-        border-top: 1px solid #334155;
-    }
-
-    .btn-read-more {
-        background: #2563eb;
-        color: white;
-        padding: 8px 16px;
-        border-radius: 6px;
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 0.9rem;
-        transition: all 0.3s ease;
-    }
-
-    .btn-read-more:hover {
-        background: #1e40af;
-        transform: translateY(-2px);
-    }
-
-    .news-rating {
-        color: #fbbf24;
-        font-weight: 700;
-    }
-
-    .empty-message {
-        text-align: center;
-        color: #94a3b8;
-        font-size: 1.1rem;
-        padding: 40px 20px;
-    }
-
-    /* Пагинация */
-    .pagination-wrapper {
-        display: flex;
-        justify-content: center;
-        margin: 40px 0;
-    }
-
-    .pagination-list {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .page-link {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 40px;
-        padding: 8px 12px;
-        background: white;
-        color: #2563eb;
-        border: 2px solid #2563eb;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-
-    .page-link:hover {
-        background: #2563eb;
-        color: white;
-        transform: translateY(-2px);
-    }
-
-    .page-link.active {
-        background: #2563eb;
-        color: white;
-    }
-
-    @media (max-width: 768px) {
-        .main-title { font-size: 2rem; }
-        .news-grid { grid-template-columns: 1fr; }
-        .categories-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
-        .filter-form { flex-direction: column; }
-    }
-</style>
 {% endblock %}

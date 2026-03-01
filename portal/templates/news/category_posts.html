@@ -1,345 +1,93 @@
-{% extends 'portal_base.html' %}
+{% extends 'base.html' %}
+
+{% block title %}NewsSputi | {{ current_category.name }}{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<div class="category-wrapper">
-    <!-- Заголовок категории -->
-    <div class="category-header" style="border-left-color: {{ current_category.color }};">
-        <h1 class="category-title" style="color: {{ current_category.color }};">📰 {{ current_category.name }}</h1>
-        <p class="category-description">Все новости в разделе "{{ current_category.name }}"</p>
-    </div>
-
-    <!-- Блок подписки -->
-    <div class="subscription-block">
+<div class="f66-shell">
+  <section class="f66-hero">
+    <div class="f66-hero-glow"></div>
+    <div class="f66-container">
+      <p class="f66-kicker reveal-on-scroll">Category Feed</p>
+      <h1 class="f66-title reveal-on-scroll">{{ current_category.name }}</h1>
+      <p class="f66-subtitle reveal-on-scroll">Сфокусированная лента категории с подпиской и интерактивными реакциями.</p>
+      <div class="f66-actions reveal-on-scroll">
         {% if user.is_authenticated %}
-            {% if user.pk not in subscriber_ids %}
-                <form action="{% url 'subscribe_category' current_category.id %}" method="post" class="subscription-form">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-subscribe-large">
-                        <span class="subscribe-icon">🔔</span>
-                        Подписаться на обновления
-                    </button>
-                    <p class="subscription-hint">Получайте уведомления о новых статьях в этом разделе</p>
-                </form>
+          {% if user.pk not in subscriber_ids %}
+          <form action="{% url 'subscribe_category' current_category.id %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="f66-btn f66-btn-primary">Подписаться</button>
+          </form>
+          {% else %}
+          <form action="{% url 'unsubscribe_category' current_category.id %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="f66-btn f66-btn-ghost">Отписаться</button>
+          </form>
+          {% endif %}
+        {% else %}
+          <a href="{% url 'account_login' %}" class="f66-btn f66-btn-primary">Войти для подписки</a>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section class="f66-section">
+    <div class="f66-container">
+      {% if object_list %}
+      <div class="f66-news-grid">
+        {% for post in object_list %}
+        <article class="f66-news-card glass-elevated reveal-on-scroll tilt-card" data-tilt-card>
+          {% with media_preview=post.media_files.first %}
+            {% if post.image %}
+            <a href="{{ post.get_absolute_url }}" class="f66-card-media"><img src="{{ post.image.url }}" alt="{{ post.title }}"></a>
+            {% elif media_preview %}
+            <a href="{{ post.get_absolute_url }}" class="f66-card-media"><img src="{{ media_preview.image.url }}" alt="{{ post.title }}"></a>
             {% else %}
-                <div class="subscription-active">
-                    <button type="button" class="btn-unsubscribe-large" onclick="document.getElementById('unsub-form').submit();">
-                        <span class="subscribe-icon">✓</span>
-                        Вы подписаны
-                    </button>
-                    <form id="unsub-form" action="{% url 'unsubscribe_category' current_category.id %}" method="post" style="display:none;">
-                        {% csrf_token %}
-                    </form>
-                    <p class="subscription-status">Вы будете получать уведомления о новых статьях</p>
-                </div>
+            <a href="{{ post.get_absolute_url }}" class="f66-card-media f66-media-fallback"><span>News</span></a>
             {% endif %}
-        {% else %}
-            <div class="subscription-login">
-                <p>Чтобы подписаться на этот раздел, пожалуйста <a href="{% url 'account_login' %}" class="login-link">войдите в аккаунт</a> или <a href="{% url 'account_signup' %}" class="signup-link">зарегистрируйтесь</a></p>
+          {% endwith %}
+
+          <div class="f66-card-body">
+            <p class="f66-meta">{{ post.created_at|date:"d.m.Y" }} • {{ post.author.user.username }}</p>
+            <h3><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h3>
+            <p>{{ post.text|truncatechars:170 }}</p>
+            <div class="f66-card-footer">
+              <a href="{{ post.get_absolute_url }}" class="f66-link">Читать</a>
+              <span class="f66-rating">Рейтинг {{ post.rating }}</span>
             </div>
+            <div class="reaction-row" data-post-id="{{ post.id }}">
+              <button class="reaction-btn {% if post.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like">👍 <span data-like-count>{{ post.likes_count|default:0 }}</span></button>
+              <button class="reaction-btn {% if post.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike">👎 <span data-dislike-count>{{ post.dislikes_count|default:0 }}</span></button>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+
+      {% if is_paginated %}
+      <nav class="pagination-premium" aria-label="Пагинация">
+        {% if page_obj.has_previous %}
+          <a href="?page=1">Первая</a>
+          <a href="?page={{ page_obj.previous_page_number }}">Назад</a>
         {% endif %}
-    </div>
-
-    <!-- Раздел постов -->
-    <div class="posts-section">
-        <h2 class="posts-heading">Статьи и новости</h2>
-        {% if posts %}
-            <div class="posts-grid">
-            {% for post in posts %}
-                <div class="post-card">
-                    <h3 class="post-title">
-                        <a href="{% url 'news_detail' post.id %}">{{ post.title }}</a>
-                    </h3>
-                    <p class="post-meta">
-                        <span class="post-date">📅 {{ post.created_at|date:"d.m.Y H:i" }}</span>
-                        <span class="post-author">✍️ {{ post.author.user.username }}</span>
-                    </p>
-                    <p class="post-preview">{{ post.text|truncatechars:150 }}</p>
-                    <a href="{% url 'news_detail' post.id %}" class="read-more">Читать полностью →</a>
-                </div>
-            {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty-posts">
-                <p>В этом разделе пока нет статей</p>
-            </div>
+        {% for num in page_obj.paginator.page_range %}
+          {% if num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %}
+          <a href="?page={{ num }}" class="{% if page_obj.number == num %}is-active{% endif %}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}">Вперёд</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}">Последняя</a>
         {% endif %}
+      </nav>
+      {% endif %}
+      {% else %}
+      <div class="f66-empty glass-elevated reveal-on-scroll">
+        <h3>В этой категории пока нет новостей</h3>
+        <p>Публикации появятся немного позже.</p>
+      </div>
+      {% endif %}
     </div>
-
-    <!-- Пагинация -->
-    {% if is_paginated %}
-        <nav class="pagination-block">
-            {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}" class="pagination-link">← Предыдущая</a>
-            {% endif %}
-
-            <span class="pagination-info">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
-
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}" class="pagination-link">Следующая →</a>
-            {% endif %}
-        </nav>
-    {% endif %}
+  </section>
 </div>
-
-<style>
-    .category-wrapper {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 20px;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
-    .category-header {
-        padding: 40px 30px;
-        border-radius: 12px;
-        margin-bottom: 30px;
-        border-left: 5px solid;
-        background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(30, 41, 59, 0.05));
-    }
-
-    .category-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin: 0 0 10px 0;
-    }
-
-    .category-description {
-        font-size: 1rem;
-        color: #64748b;
-        margin: 0;
-    }
-
-    /* Блок подписки */
-    .subscription-block {
-        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-        padding: 40px;
-        border-radius: 16px;
-        margin-bottom: 40px;
-        text-align: center;
-        box-shadow: 0 10px 30px rgba(37, 99, 235, 0.2);
-    }
-
-    .subscription-form {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .btn-subscribe-large {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        color: white;
-        border: none;
-        padding: 16px 40px;
-        font-size: 18px;
-        font-weight: 700;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .btn-subscribe-large:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 30px rgba(59, 130, 246, 0.6);
-    }
-
-    .btn-subscribe-large:active {
-        transform: translateY(-1px);
-    }
-
-    .subscribe-icon {
-        font-size: 20px;
-        animation: pulse 1s infinite;
-    }
-
-    .subscription-hint {
-        color: rgba(255,255,255,0.9);
-        margin-top: 16px;
-        font-size: 14px;
-    }
-
-    .subscription-active {
-        text-align: center;
-    }
-
-    .btn-unsubscribe-large {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        color: white;
-        border: none;
-        padding: 16px 40px;
-        font-size: 18px;
-        font-weight: 700;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 0 auto;
-    }
-
-    .btn-unsubscribe-large:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 30px rgba(16, 185, 129, 0.6);
-    }
-
-    .subscription-status {
-        color: rgba(255,255,255,0.9);
-        margin-top: 16px;
-        font-size: 14px;
-    }
-
-    .subscription-login {
-        color: white;
-        font-size: 16px;
-    }
-
-    .login-link, .signup-link {
-        color: #fbbf24;
-        text-decoration: none;
-        font-weight: bold;
-        transition: color 0.3s;
-    }
-
-    .login-link:hover, .signup-link:hover {
-        color: white;
-        text-decoration: underline;
-    }
-
-    /* Раздел постов */
-    .posts-section {
-        margin: 40px 0;
-    }
-
-    .posts-heading {
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 25px;
-        color: #1e293b;
-        border-bottom: 3px solid #2563eb;
-        padding-bottom: 10px;
-        display: inline-block;
-    }
-
-    .posts-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 24px;
-    }
-
-    .post-card {
-        background: #1e293b;
-        border-radius: 16px;
-        padding: 24px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-        border: 1px solid #334155;
-    }
-
-    .post-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 30px rgba(37, 99, 235, 0.15);
-        border-color: #2563eb;
-    }
-
-    .post-title {
-        font-size: 1.2rem;
-        font-weight: 700;
-        margin: 0 0 12px 0;
-        color: #3b82f6;
-    }
-
-    .post-title a {
-        color: #3b82f6;
-        text-decoration: none;
-        transition: color 0.3s ease;
-    }
-
-    .post-title a:hover {
-        color: #60a5fa;
-    }
-
-    .post-meta {
-        display: flex;
-        gap: 16px;
-        color: #94a3b8;
-        font-size: 0.85rem;
-        margin-bottom: 12px;
-    }
-
-    .post-preview {
-        color: #cbd5e1;
-        line-height: 1.6;
-        margin-bottom: 16px;
-    }
-
-    .read-more {
-        display: inline-block;
-        color: #60a5fa;
-        text-decoration: none;
-        font-weight: 600;
-        transition: color 0.3s;
-        margin-top: 10px;
-    }
-
-    .read-more:hover {
-        color: #3b82f6;
-    }
-
-    .empty-posts {
-        text-align: center;
-        padding: 60px 20px;
-        color: #94a3b8;
-        font-size: 1.1rem;
-    }
-
-    /* Пагинация */
-    .pagination-block {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 30px;
-        margin-top: 40px;
-        padding: 30px;
-        background-color: #f8fafc;
-        border-radius: 12px;
-    }
-
-    .pagination-link {
-        color: #2563eb;
-        text-decoration: none;
-        font-weight: 600;
-        padding: 10px 20px;
-        border-radius: 8px;
-        transition: all 0.3s;
-        border: 2px solid #2563eb;
-    }
-
-    .pagination-link:hover {
-        background-color: #2563eb;
-        color: white;
-        transform: translateY(-2px);
-    }
-
-    .pagination-info {
-        color: #64748b;
-        font-weight: 600;
-    }
-
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.15); }
-    }
-
-    @media (max-width: 768px) {
-        .category-title { font-size: 1.8rem; }
-        .btn-subscribe-large, .btn-unsubscribe-large { padding: 12px 30px; font-size: 16px; }
-        .post-meta { flex-direction: column; gap: 5px; }
-        .pagination-block { flex-direction: column; gap: 15px; }
-        .posts-grid { grid-template-columns: 1fr; }
-    }
-</style>
 {% endblock %}

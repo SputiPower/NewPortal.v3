@@ -70,15 +70,23 @@ class Command(BaseCommand):
         scheduler = BlockingScheduler(timezone=settings.TIME_ZONE)
         scheduler.add_jobstore(DjangoJobStore(), "default")
         
-        # Добавляем задачу отправки еженедельного дайджеста (каждый понедельник в 00:00)
-        scheduler.add_job(
-            send_weekly_digest,
-            trigger=CronTrigger(day_of_week="mon", hour="00", minute="00"),
-            id="send_weekly_digest",
-            max_instances=1,
-            replace_existing=True,
-        )
-        logger.info("Добавлена задача 'send_weekly_digest' (еженедельно по понедельникам)")
+        if getattr(settings, "APSCHEDULER_ENABLE_WEEKLY_DIGEST", False):
+            scheduler.add_job(
+                send_weekly_digest,
+                trigger=CronTrigger(day_of_week="mon", hour="08", minute="00"),
+                id="send_weekly_digest",
+                max_instances=1,
+                replace_existing=True,
+            )
+            logger.info(
+                "Добавлена задача 'send_weekly_digest' "
+                "(еженедельно по понедельникам в 08:00)"
+            )
+        else:
+            logger.info(
+                "Задача 'send_weekly_digest' через APScheduler отключена "
+                "(используется Celery Beat)."
+            )
 
         # Добавляем задачу удаления старых логов выполнения (каждый понедельник в 01:00)
         scheduler.add_job(

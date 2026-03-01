@@ -1,23 +1,20 @@
 {% extends "base.html" %}
-{% load static %}
 
-{% block title %}Главная - NewsPortal{% endblock %}
+{% block title %}NewsPortal | Home{% endblock %}
+{% block body_class %}premium-page{% endblock %}
 
 {% block content %}
+<div class="content-shell">
+  <header class="page-hero reveal">
+    <h1 class="page-title">NewsPortal</h1>
+    <p class="page-subtitle">Премиальная платформа новостей и статей.</p>
+  </header>
 
-<!-- Контейнер для 3D Земли -->
-<div id="earth-container" class="mb-5" style="width:100%; height:500px; border-radius:20px; overflow:hidden; box-shadow:0 20px 50px rgba(0,0,0,0.3);"></div>
-
-<!-- Hero Section -->
-<div class="hero-section text-center py-5">
-    <h1 class="hero-title mb-3" style="font-size:3rem; font-weight:700;">Добро пожаловать на NewsPortal!</h1>
-    <p class="hero-subtitle mb-4" style="font-size:1.25rem;">Читайте свежие новости и статьи прямо здесь.</p>
-
-    <div class="d-flex justify-content-center gap-3 flex-wrap hero-buttons">
-        <a href="{% url 'news_list' %}" class="btn btn-primary btn-lg hero-btn">Читать</a>
-        <a href="{% url 'news_create' %}" class="btn btn-success btn-lg hero-btn">Создать новость</a>
-        <a href="{% url 'article_create' %}" class="btn btn-warning btn-lg hero-btn">Создать статью</a>
+  <section class="panel glass-surface reveal" style="text-align:center;">
+    <div class="hero-actions">
+      <a href="{% url 'news_list' %}" class="btn-premium btn-primary-premium">Новости</a>
+      <a href="{% url 'article_list' %}" class="btn-premium btn-ghost-premium">Статьи</a>
     </div>
+  </section>
 </div>
-
 {% endblock %}

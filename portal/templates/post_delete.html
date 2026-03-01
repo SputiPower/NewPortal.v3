@@ -1,168 +1,32 @@
 {% extends 'base.html' %}
 
 {% block title %}Удалить пост{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<div class="delete-wrapper">
-    <div class="delete-container">
-        <div class="delete-icon">🗑️</div>
-        <h1 class="delete-title">Удалить пост?</h1>
-        <p class="delete-subtitle">Это действие нельзя отменить</p>
+<div class="f66-shell">
+  <section class="f66-section" style="padding-top:8rem;">
+    <div class="f66-container" style="max-width:780px;">
+      <section class="profile-card glass-elevated reveal-on-scroll" style="text-align:center;">
+        <h1 class="detail-title">Удалить пост?</h1>
+        <p class="page-subtitle">Это действие необратимо.</p>
 
-        <div class="delete-post-preview">
-            <h3 class="preview-title">{{ object.title }}</h3>
-            <p class="preview-text">{{ object.text|truncatechars:150 }}</p>
+        <div class="detail-body" style="text-align:left; margin-top:1rem;">
+          <strong>{{ object.title }}</strong>
+          <p>{{ object.text|truncatechars:180 }}</p>
         </div>
 
-        <p class="delete-warning">⚠️ После удаления пост и все его комментарии будут удалены из системы навсегда.</p>
+        <div class="warning-box">После удаления пост и связанные комментарии будут удалены окончательно.</div>
 
-        <div class="delete-actions">
-            <form method="post" class="delete-form">
-                {% csrf_token %}
-                <button type="submit" class="btn-delete">✓ Да, удалить пост</button>
-            </form>
-            <a href="{% if object.type == 'NW' %}{% url 'news_list' %}{% else %}{% url 'article_list' %}{% endif %}" class="btn-cancel-delete">← Отмена</a>
+        <div class="form-actions" style="justify-content:center;">
+          <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="f66-btn f66-btn-primary">Да, удалить</button>
+          </form>
+          <a href="{% if object.type == 'NW' %}{% url 'news_list' %}{% else %}{% url 'article_list' %}{% endif %}" class="f66-btn f66-btn-ghost">Отмена</a>
         </div>
+      </section>
     </div>
+  </section>
 </div>
-
-<style>
-    .delete-wrapper {
-        min-height: 100vh;
-        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
-    .delete-container {
-        background: white;
-        padding: 40px;
-        border-radius: 16px;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.1);
-        max-width: 500px;
-        width: 100%;
-        text-align: center;
-    }
-
-    .delete-icon {
-        font-size: 4rem;
-        margin-bottom: 20px;
-        display: block;
-    }
-
-    .delete-title {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 8px;
-    }
-
-    .delete-subtitle {
-        color: #64748b;
-        margin-bottom: 30px;
-        font-size: 1rem;
-    }
-
-    .delete-post-preview {
-        background: #f8fafc;
-        border: 2px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 24px;
-        text-align: left;
-    }
-
-    .preview-title {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin: 0 0 12px 0;
-    }
-
-    .preview-text {
-        color: #64748b;
-        font-size: 0.9rem;
-        line-height: 1.5;
-        margin: 0;
-    }
-
-    .delete-warning {
-        background: #fef2f2;
-        border-left: 4px solid #ef4444;
-        color: #991b1b;
-        padding: 16px;
-        border-radius: 8px;
-        margin-bottom: 30px;
-        font-size: 0.95rem;
-        line-height: 1.6;
-    }
-
-    .delete-actions {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .delete-form {
-        width: 100%;
-        margin: 0;
-    }
-
-    .btn-delete {
-        width: 100%;
-        background: linear-gradient(135deg, #ef4444, #dc2626);
-        color: white;
-        padding: 14px 28px;
-        border: none;
-        border-radius: 8px;
-        font-size: 1rem;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
-    }
-
-    .btn-delete:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 30px rgba(239, 68, 68, 0.5);
-    }
-
-    .btn-delete:active {
-        transform: translateY(-1px);
-    }
-
-    .btn-cancel-delete {
-        padding: 14px 28px;
-        background: white;
-        color: #64748b;
-        border: 2px solid #cbd5e1;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 600;
-        transition: all 0.3s;
-        display: inline-block;
-    }
-
-    .btn-cancel-delete:hover {
-        border-color: #94a3b8;
-        color: #475569;
-    }
-
-    @media (max-width: 640px) {
-        .delete-container {
-            padding: 20px;
-        }
-
-        .delete-title {
-            font-size: 1.5rem;
-        }
-
-        .delete-icon {
-            font-size: 3rem;
-        }
-    }
-</style>
 {% endblock %}

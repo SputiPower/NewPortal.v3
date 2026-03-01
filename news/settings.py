@@ -197,25 +197,35 @@ if EMAIL_PROVIDER == "gmail":
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-# Временная проверка
-print("Используемый провайдер:", EMAIL_PROVIDER)
-print("EMAIL_HOST_USER:", EMAIL_HOST_USER)
-print("EMAIL_HOST_PASSWORD есть?", "Да" if EMAIL_HOST_PASSWORD else "Нет")
+# Временная проверка (удалены печатные сообщения, чтобы не засорять логи воркеров)
+# Для отладки используйте логирование или django-admin shell
 
 # APScheduler configuration
 APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
 APSCHEDULER_RUN_NOW_TIMEOUT = 25  # Seconds
 
+# Celery Configuration
+CELERY_BROKER_URL = os.getenv(
+    'CELERY_BROKER_URL',
+    'redis://:RaOHBEYoA7dn0UTV6mfJlTEh0UhSXptV@redis-13497.c62.us-east-1-4.ec2.cloud.redislabs.com:13497/0',
+)
+CELERY_RESULT_BACKEND = os.getenv(
+    'CELERY_RESULT_BACKEND',
+    CELERY_BROKER_URL,
+)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
 
+# Celery Beat Schedule задается в news/celery.py через crontab.
 
-
-
-
-
-
-
-
-
+# APScheduler fallback: отключен weekly digest по умолчанию,
+# чтобы избежать двойной рассылки вместе с Celery Beat.
+APSCHEDULER_ENABLE_WEEKLY_DIGEST = os.getenv(
+    'APSCHEDULER_ENABLE_WEEKLY_DIGEST',
+    '0',
+) in {'1', 'true', 'True'}
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
