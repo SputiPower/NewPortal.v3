@@ -1,197 +1,90 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Главная{% endblock %}
+{% block title %}NewsSputi | Глобальные новости{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<!-- Подключение Swiper -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
-<link rel="stylesheet" href="{% static 'portal/index.css' %}" />
-
-<!-- Контакты сайта в верхнем правом углу -->
-<div class="site-socials">
-  <a href="https://instagram.com/sputi_racing" target="_blank" rel="noopener">
-    <img src="{% static 'icons/instagram.svg' %}" alt="Instagram">
-  </a>
-  <a href="https://t.me/Sputi_DRT" target="_blank" rel="noopener">
-    <img src="{% static 'icons/telegram.svg' %}" alt="Telegram">
-  </a>
-  <a href="mailto:sputi0596@gmail.com" target="_blank" title="Написать на почту">
-    <img src="{% static 'icons/gmail.svg' %}" alt="Gmail">
-  </a>
-</div>
-
-<div class="index-wrapper">
-  <h1 class="main-title">Добро пожаловать на News Portal</h1>
-  <p class="subtitle">Читайте последние новости и статьи прямо сейчас</p>
-
-  {% if user.is_authenticated %}
-    <div class="author-actions">
-      {% if is_not_author %}
-        <a href="{% url 'upgrade' %}" class="btn btn-primary">Стать автором</a>
-      {% else %}
-        <a href="{% url 'news_create' %}" class="btn btn-primary">Создать новость</a>
-        <a href="{% url 'article_create' %}" class="btn btn-secondary">Создать статью</a>
-      {% endif %}
+<div class="f66-shell">
+  <section class="f66-hero" aria-label="Главный блок">
+    <div class="f66-hero-glow"></div>
+    <div class="f66-container">
+      <p class="f66-kicker reveal-on-scroll">NewsSputi • Технологический стандарт 2066</p>
+      <h1 class="f66-title reveal-on-scroll">Глобальные новости в новом визуальном измерении.</h1>
+      <p class="f66-subtitle reveal-on-scroll">
+        Чистая композиция, воздух, глубина и кинематографическая подача.
+        Всё важное в одном технологичном пространстве.
+      </p>
+      <div class="f66-actions reveal-on-scroll">
+        <a href="{% url 'news_list' %}" class="f66-btn f66-btn-primary">Открыть новости</a>
+        <a href="{% url 'article_list' %}" class="f66-btn f66-btn-ghost">Читать статьи</a>
+      </div>
     </div>
-  {% endif %}
+  </section>
 
-  <!-- Карусель новостей -->
-  <section class="slider-section">
-    <h2 class="section-title">Свежие новости и статьи</h2>
-    <div class="swiper mySwiper">
-      <div class="swiper-wrapper">
+  <section class="f66-section" id="latest">
+    <div class="f66-container">
+      <header class="f66-section-head reveal-on-scroll">
+        <p class="f66-kicker">Лента</p>
+        <h2>Последние публикации</h2>
+      </header>
+
+      <div class="f66-news-grid">
         {% for post in latest_news %}
-        <div class="swiper-slide post-card">
-          <header><h3>{{ post.title }}</h3></header>
-          <p>{{ post.text|truncatechars:150 }}</p>
-          <a href="{% url 'news_detail' post.pk %}" class="btn read-btn">Читать</a>
-        </div>
+        <article class="f66-news-card glass-elevated reveal-on-scroll tilt-card" data-tilt-card>
+          {% with media_preview=post.media_files.first %}
+            {% if post.image %}
+            <a href="{{ post.get_absolute_url }}" class="f66-card-media">
+              <img src="{{ post.image.url }}" alt="{{ post.title }}">
+            </a>
+            {% elif media_preview %}
+            <a href="{{ post.get_absolute_url }}" class="f66-card-media">
+              <img src="{{ media_preview.image.url }}" alt="{{ post.title }}">
+            </a>
+            {% else %}
+            <a href="{{ post.get_absolute_url }}" class="f66-card-media f66-media-fallback" aria-label="Открыть публикацию">
+              <span>News</span>
+            </a>
+            {% endif %}
+          {% endwith %}
+
+          <div class="f66-card-body">
+            <p class="f66-meta">{{ post.created_at|date:"d.m.Y" }} • {{ post.author.user.username }}</p>
+            <h3><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h3>
+            <p>{{ post.text|truncatechars:170 }}</p>
+            <div class="f66-card-footer">
+              <a href="{{ post.get_absolute_url }}" class="f66-link">Читать полностью</a>
+              <span class="f66-rating">Рейтинг {{ post.rating }}</span>
+            </div>
+          </div>
+        </article>
         {% empty %}
-        <p>Новостей пока нет.</p>
+        <div class="f66-empty glass-elevated reveal-on-scroll">
+          <h3>Публикаций пока нет</h3>
+          <p>Лента обновится автоматически, как только появятся новые материалы.</p>
+        </div>
         {% endfor %}
       </div>
     </div>
   </section>
 
-  <!-- Квадрат со словами -->
-  <div id="word-container"></div>
-
-  <style>
-    /* Квадрат со словами */
-    #word-container {
-      position: relative;
-      width: 350px;
-      height: 125px;
-      border: 2px solid #fff;
-      background: #1e293b;
-      margin: 40px auto;
-      overflow: hidden;
-      border-radius: 12px;
-    }
-    .word {
-      position: absolute;
-      padding: 5px 5px;
-      background: #3b82f6;
-      border-radius: 4px;
-      cursor: grab;
-      user-select: none;
-      color: #fff;
-      font-weight: bold;
-      transition: background 0.2s;
-      white-space: nowrap;
-    }
-    .word:active {
-      cursor: grabbing;
-      background: #60a5fa;
-    }
-  </style>
+  {% if user.is_authenticated %}
+  <section class="f66-section f66-author-zone">
+    <div class="f66-container">
+      <div class="f66-author-card glass-elevated reveal-on-scroll">
+        <h2>Панель автора</h2>
+        <p>Создавайте новости и статьи с поддержкой PNG-галерей и премиальным отображением.</p>
+        <div class="f66-actions">
+          {% if is_not_author %}
+            <a href="{% url 'upgrade' %}" class="f66-btn f66-btn-primary">Стать автором</a>
+          {% else %}
+            <a href="{% url 'news_create' %}" class="f66-btn f66-btn-primary">Создать новость</a>
+            <a href="{% url 'article_create' %}" class="f66-btn f66-btn-ghost">Создать статью</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
 </div>
-
-<!-- Swiper JS -->
-<script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  // Настройка карусели
-  const swiper = new Swiper('.mySwiper', {
-    slidesPerView: 3,
-    spaceBetween: 30,
-    loop: true,
-    freeMode: true,
-    speed: 7000,
-    autoplay: { delay: 0, disableOnInteraction: false },
-    // mousewheel убран, чтобы скролл не трогал карусель
-    breakpoints: {
-      320: { slidesPerView: 1, spaceBetween: 10 },
-      768: { slidesPerView: 2, spaceBetween: 20 },
-      1024: { slidesPerView: 3, spaceBetween: 30 },
-    },
-  });
-
-  // Квадрат со словами
-  const container = document.getElementById('word-container');
-  const words = ["Hello","World","JS","Django","Python","Code","Fun","Move","Click","Test"];
-
-  const elems = words.map(text => {
-    const el = document.createElement('div');
-    el.className = 'word';
-    el.innerText = text;
-    container.appendChild(el);
-
-    el.x = Math.random() * (container.clientWidth - 80);
-    el.y = Math.random() * (container.clientHeight - 30);
-    el.vx = (Math.random()-0.5)*2;
-    el.vy = (Math.random()-0.5)*2;
-
-    el.style.left = el.x + 'px';
-    el.style.top = el.y + 'px';
-    return el;
-  });
-
-  let dragEl = null;
-  let offsetX = 0;
-  let offsetY = 0;
-
-  elems.forEach(el => {
-    el.addEventListener('mousedown', e => {
-      dragEl = el;
-      offsetX = e.offsetX;
-      offsetY = e.offsetY;
-      el.vx = 0;
-      el.vy = 0;
-    });
-  });
-
-  document.addEventListener('mousemove', e => {
-    if(dragEl){
-      dragEl.x = e.clientX - container.getBoundingClientRect().left - offsetX;
-      dragEl.y = e.clientY - container.getBoundingClientRect().top - offsetY;
-      dragEl.x = Math.max(0, Math.min(dragEl.x, container.clientWidth - dragEl.offsetWidth));
-      dragEl.y = Math.max(0, Math.min(dragEl.y, container.clientHeight - dragEl.offsetHeight));
-      dragEl.style.left = dragEl.x + 'px';
-      dragEl.style.top = dragEl.y + 'px';
-    }
-  });
-
-  document.addEventListener('mouseup', e => dragEl = null);
-
-  function animate() {
-    elems.forEach(el => {
-      if(el !== dragEl){
-        el.x += el.vx;
-        el.y += el.vy;
-
-        if(el.x <= 0 || el.x >= container.clientWidth - el.offsetWidth) el.vx *= -1;
-        if(el.y <= 0 || el.y >= container.clientHeight - el.offsetHeight) el.vy *= -1;
-
-        elems.forEach(other => {
-          if(el === other) return;
-          const dx = (el.x + el.offsetWidth/2) - (other.x + other.offsetWidth/2);
-          const dy = (el.y + el.offsetHeight/2) - (other.y + other.offsetHeight/2);
-          const dist = Math.sqrt(dx*dx + dy*dy);
-          if(dist < 50){
-            const angle = Math.atan2(dy, dx);
-            el.vx += Math.cos(angle)*0.1;
-            el.vy += Math.sin(angle)*0.1;
-            other.vx -= Math.cos(angle)*0.1;
-            other.vy -= Math.sin(angle)*0.1;
-          }
-        });
-
-        const speedLimit = 2;
-        el.vx = Math.max(-speedLimit, Math.min(speedLimit, el.vx));
-        el.vy = Math.max(-speedLimit, Math.min(speedLimit, el.vy));
-
-        el.style.left = el.x + 'px';
-        el.style.top = el.y + 'px';
-      }
-    });
-    requestAnimationFrame(animate);
-  }
-
-  animate();
-});
-</script>
-
 {% endblock %}

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load censor %}
+
+{% block title %}NewsSputi | Умная лента{% endblock %}
+{% block body_class %}f66-body{% endblock %}
+
+{% block content %}
+<div class="f66-shell">
+  <section class="f66-hero">
+    <div class="f66-hero-glow"></div>
+    <div class="f66-container">
+      <p class="f66-kicker reveal-on-scroll">Personal Feed</p>
+      <h1 class="f66-title reveal-on-scroll">Умная лента под ваш интерес.</h1>
+      <p class="f66-subtitle reveal-on-scroll">Подписки, реакции, популярность и свежесть объединены в единую релевантную выдачу.</p>
+      <div class="f66-actions reveal-on-scroll">
+        <a class="f66-btn {% if sort == 'relevance' %}f66-btn-primary{% else %}f66-btn-ghost{% endif %}" href="?sort=relevance">Релевантность</a>
+        <a class="f66-btn {% if sort == 'popular' %}f66-btn-primary{% else %}f66-btn-ghost{% endif %}" href="?sort=popular">Популярность</a>
+        <a class="f66-btn {% if sort == 'date' %}f66-btn-primary{% else %}f66-btn-ghost{% endif %}" href="?sort=date">Дата</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="f66-section">
+    <div class="f66-container">
+      <div class="f66-news-grid">
+        {% for item in news %}
+        <article class="f66-news-card glass-elevated reveal-on-scroll tilt-card" data-tilt-card>
+          {% with media_preview=item.media_files.first %}
+            {% if item.image %}
+            <a href="{{ item.get_absolute_url }}" class="f66-card-media"><img src="{{ item.image.url }}" alt="{{ item.title|censor }}"></a>
+            {% elif media_preview %}
+            <a href="{{ item.get_absolute_url }}" class="f66-card-media"><img src="{{ media_preview.image.url }}" alt="{{ item.title|censor }}"></a>
+            {% else %}
+            <a href="{{ item.get_absolute_url }}" class="f66-card-media f66-media-fallback"><span>News</span></a>
+            {% endif %}
+          {% endwith %}
+          <div class="f66-card-body">
+            <p class="f66-meta">{{ item.created_at|date:"d.m.Y H:i" }} • {{ item.author.user.username }}</p>
+            <h3><a href="{{ item.get_absolute_url }}">{{ item.title|censor }}</a></h3>
+            <p>{{ item.text|truncatechars:170|censor }}</p>
+            <div class="f66-card-footer">
+              <a href="{{ item.get_absolute_url }}" class="f66-link">Читать</a>
+              <span class="f66-rating">Рейтинг {{ item.rating }}</span>
+            </div>
+            <div class="reaction-row" data-post-id="{{ item.id }}">
+              <button class="reaction-btn {% if item.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like">👍 <span data-like-count>{{ item.likes_count|default:0 }}</span></button>
+              <button class="reaction-btn {% if item.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike">👎 <span data-dislike-count>{{ item.dislikes_count|default:0 }}</span></button>
+            </div>
+          </div>
+        </article>
+        {% empty %}
+        <div class="f66-empty glass-elevated reveal-on-scroll">
+          <h3>Лента пока пуста</h3>
+          <p>Подпишитесь на категории и авторов, чтобы получать персональные новости.</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if is_paginated %}
+      <nav class="pagination-premium" aria-label="Пагинация">
+        {% if page_obj.has_previous %}
+          <a href="?sort={{ sort }}&page=1">Первая</a>
+          <a href="?sort={{ sort }}&page={{ page_obj.previous_page_number }}">Назад</a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %}
+            <a href="?sort={{ sort }}&page={{ num }}" class="{% if num == page_obj.number %}is-active{% endif %}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+          <a href="?sort={{ sort }}&page={{ page_obj.next_page_number }}">Вперёд</a>
+          <a href="?sort={{ sort }}&page={{ page_obj.paginator.num_pages }}">Последняя</a>
+        {% endif %}
+      </nav>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

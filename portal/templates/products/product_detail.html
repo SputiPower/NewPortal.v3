@@ -1,85 +1,33 @@
-{% extends 'portal_base.html' %}
+{% extends 'base.html' %}
 
 {% block title %}{{ product.name }}{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<div class="product-detail-wrapper">
-    <div class="product-detail-card">
-        <h1 class="product-name">{{ product.name }}</h1>
-        <p class="product-price">💰 {{ product.price }} ₽</p>
-        {% if product.image %}
-            <div class="product-image">
-                <img src="{{ product.image.url }}" alt="{{ product.name }}">
-            </div>
-        {% endif %}
-        <div class="product-description">
-            {{ product.description }}
-        </div>
-        <a href="{% url 'products' %}" class="btn-back">← Вернуться в каталог</a>
+<article class="f66-detail-shell">
+  <header class="f66-detail-hero reveal-on-scroll">
+    <div class="f66-detail-overlay"></div>
+    {% if product.image %}
+    <img class="f66-detail-hero-image" src="{{ product.image.url }}" alt="{{ product.name }}">
+    {% else %}
+    <div class="f66-detail-hero-image f66-media-fallback"><span>Product</span></div>
+    {% endif %}
+
+    <div class="f66-detail-headline">
+      <p class="f66-kicker">NewsSputi • Product</p>
+      <h1>{{ product.name }}</h1>
+      <p class="f66-detail-meta">Стоимость {{ product.price }} ₽</p>
     </div>
-</div>
+  </header>
 
-<style>
-    .product-detail-wrapper {
-        max-width: 800px;
-        margin: 40px auto;
-        padding: 20px;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
+  <div class="f66-container f66-detail-content-wrap">
+    <section class="f66-detail-content glass-elevated reveal-on-scroll">
+      <div class="f66-typography">{{ product.description|default:'Описание отсутствует' }}</div>
+    </section>
 
-    .product-detail-card {
-        background: #1e293b;
-        color: #e2e8f0;
-        padding: 30px;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        text-align: center;
-    }
-
-    .product-name {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #3b82f6;
-        margin-bottom: 12px;
-    }
-
-    .product-price {
-        font-size: 1.5rem;
-        color: #10b981;
-        margin-bottom: 20px;
-    }
-
-    .product-image {
-        margin-bottom: 20px;
-    }
-
-    .product-image img {
-        max-width: 100%;
-        border-radius: 12px;
-        box-shadow: 0 8px 30px rgba(37,99,235,0.2);
-    }
-
-    .product-description {
-        margin-bottom: 30px;
-        line-height: 1.6;
-        color: #cbd5e1;
-    }
-
-    .btn-back {
-        display: inline-block;
-        background: #2563eb;
-        color: white;
-        padding: 12px 24px;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 600;
-        transition: all 0.3s;
-    }
-
-    .btn-back:hover {
-        background: #1e40af;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
-    }
-</style>
+    <footer class="f66-detail-actions reveal-on-scroll">
+      <a href="{% url 'products_list' %}" class="f66-btn f66-btn-ghost">Назад в каталог</a>
+    </footer>
+  </div>
+</article>
 {% endblock %}

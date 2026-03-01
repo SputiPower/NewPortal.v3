@@ -1,345 +1,106 @@
 {% extends 'base.html' %}
-
-{% load static %}
 {% load censor %}
 
-{% block title %}Статьи{% endblock %}
+{% block title %}NewsSputi | Статьи{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<div class="articles-wrapper">
-    <h1 class="main-title">📚 Статьи</h1>
+<div class="f66-shell">
+  <section class="f66-hero" id="top">
+    <div class="f66-hero-glow"></div>
+    <div class="f66-container">
+      <p class="f66-kicker reveal-on-scroll">NewsSputi • Deep Articles</p>
+      <h1 class="f66-title reveal-on-scroll">Глубокая аналитика в технологичной эстетике.</h1>
+      <p class="f66-subtitle reveal-on-scroll">Детальные материалы, экспертные мнения и структурированный текстовый опыт без визуального шума.</p>
+      <div class="f66-actions reveal-on-scroll">
+        <a href="#articles" class="f66-btn f66-btn-primary">Открыть статьи</a>
+      </div>
+    </div>
+  </section>
 
-    {# ===== ФИЛЬТРЫ ===== #}
-    <div class="filter-section">
-        <form method="get" class="filter-form">
-            <div class="filter-group">
-                {{ filterset.form.title }}
-                <button type="submit" class="btn-filter">🔍 Поиск</button>
-            </div>
+  <section class="f66-section" id="articles">
+    <div class="f66-container">
+      <header class="f66-section-head reveal-on-scroll">
+        <p class="f66-kicker">Поиск</p>
+        <h2>Найдите нужную тему</h2>
+      </header>
+
+      <div class="panel glass-elevated reveal-on-scroll">
+        <form method="get" class="filter-form-premium">
+          <p>
+            <label for="id_q">Запрос</label>
+            <input id="id_q" type="text" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Введите ключевые слова">
+          </p>
+          <button type="submit" class="f66-btn f66-btn-primary">Найти</button>
         </form>
-    </div>
+      </div>
 
-    {# ===== КАТЕГОРИИ ===== #}
-    <div class="categories-section">
-        <h2 class="section-heading">📂 Категории</h2>
-        <div class="categories-grid">
-            {% for category in categories %}
-                <a href="{% url 'category_posts' category.id %}" 
-                   class="category-badge"
-                   style="border-color: {{ category.color }};background: rgba({{ category.color|slice:'1:' }}, 0.1);">
-                    <span class="category-label">{{ category.name }}</span>
-                </a>
-            {% endfor %}
-        </div>
-    </div>
+      {% if object_list %}
+      <div class="f66-news-grid">
+        {% for article in object_list %}
+        <article class="f66-news-card glass-elevated reveal-on-scroll tilt-card" data-tilt-card>
+          {% with article.media_files.first as media_preview %}
+            {% if article.image %}
+            <a href="{{ article.get_absolute_url }}" class="f66-card-media">
+              <img src="{{ article.image.url }}" alt="{{ article.title|censor }}">
+            </a>
+            {% elif media_preview %}
+            <a href="{{ article.get_absolute_url }}" class="f66-card-media">
+              <img src="{{ media_preview.image.url }}" alt="{{ article.title|censor }}">
+            </a>
+            {% else %}
+            <a href="{{ article.get_absolute_url }}" class="f66-card-media f66-media-fallback" aria-label="Открыть статью">
+              <span>Article</span>
+            </a>
+            {% endif %}
+          {% endwith %}
 
-    {# ===== СЕТКА СТАТЕЙ ===== #}
-    <div class="articles-section">
-        <h2 class="section-heading">✨ Все статьи</h2>
-        {% if articles %}
-            <div class="articles-grid">
-                {% for item in articles %}
-                    <div class="article-card">
-                        {% if item.image %}
-                            <div class="article-image">
-                                <img src="{{ item.image.url }}" alt="{{ item.title }}">
-                            </div>
-                        {% endif %}
-                        
-                        <h3 class="article-title">
-                            <a href="{% url 'article_detail' item.id %}">
-                                {{ item.title|censor|truncatechars:60 }}
-                            </a>
-                        </h3>
-
-                        <p class="article-meta">
-                            <span class="article-date">📅 {{ item.created_at|date:"d.m.Y" }}</span>
-                            <span class="article-rating">⭐ {{ item.rating }}</span>
-                        </p>
-
-                        <p class="article-preview">{{ item.text|truncatechars:120|censor }}</p>
-
-                        <a href="{% url 'article_detail' item.id %}" class="read-more-link">Читать полностью →</a>
-                    </div>
-                {% endfor %}
+          <div class="f66-card-body">
+            <div class="chips">
+              {% for category in article.categories.all %}
+              <span class="chip">{{ category.name }}</span>
+              {% empty %}
+              <span class="chip">Без категории</span>
+              {% endfor %}
             </div>
-        {% else %}
-            <div class="empty-state">
-                <p>📭 Статей пока нет</p>
+            <h3><a href="{{ article.get_absolute_url }}">{{ article.title|censor }}</a></h3>
+            <p class="f66-meta">{{ article.created_at|date:"d.m.Y" }} • {{ article.author.user.username }}</p>
+            <p>{{ article.text|truncatechars:170|censor }}</p>
+            <div class="f66-card-footer">
+              <a href="{{ article.get_absolute_url }}" class="f66-link">Читать статью</a>
+              <span class="f66-rating">Рейтинг {{ article.rating }}</span>
             </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+
+      {% if is_paginated %}
+      <nav class="pagination-premium" aria-label="Пагинация">
+        {% if page_obj.has_previous %}
+          <a href="?q={{ request.GET.q }}&page=1">Первая</a>
+          <a href="?q={{ request.GET.q }}&page={{ page_obj.previous_page_number }}">Назад</a>
         {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+          {% if num >= page_obj.number|add:-2 and num <= page_obj.number|add:2 %}
+            <a href="?q={{ request.GET.q }}&page={{ num }}" class="{% if page_obj.number == num %}is-active{% endif %}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+          <a href="?q={{ request.GET.q }}&page={{ page_obj.next_page_number }}">Вперёд</a>
+          <a href="?q={{ request.GET.q }}&page={{ page_obj.paginator.num_pages }}">Последняя</a>
+        {% endif %}
+      </nav>
+      {% endif %}
+      {% else %}
+      <div class="f66-empty glass-elevated reveal-on-scroll">
+        <h3>Статей пока нет</h3>
+        <p>Попробуйте изменить параметры поиска или вернитесь позже.</p>
+      </div>
+      {% endif %}
     </div>
-
-    {# ===== ПАГИНАЦИЯ ===== #}
-    {% if is_paginated %}
-        <nav class="pagination-block">
-            {% if page_obj.has_previous %}
-                <a href="?page=1" class="pagination-link">⏮ Первая</a>
-                <a href="?page={{ page_obj.previous_page_number }}" class="pagination-link">← Предыдущая</a>
-            {% endif %}
-
-            <span class="pagination-info">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
-
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}" class="pagination-link">Следующая →</a>
-                <a href="?page={{ page_obj.paginator.num_pages }}" class="pagination-link">Последняя ⏭</a>
-            {% endif %}
-        </nav>
-    {% endif %}
+  </section>
 </div>
-
-<style>
-    .articles-wrapper {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 20px;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
-    .main-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 30px;
-    }
-
-    /* Фильтры */
-    .filter-section {
-        background: #f8fafc;
-        padding: 20px;
-        border-radius: 12px;
-        margin-bottom: 30px;
-        border: 1px solid #e2e8f0;
-    }
-
-    .filter-form {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        align-items: center;
-    }
-
-    .filter-group {
-        display: flex;
-        gap: 10px;
-        flex: 1;
-        min-width: 250px;
-        align-items: center;
-    }
-
-    .filter-group input[type="text"] {
-        flex: 1;
-        padding: 10px 15px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        font-size: 14px;
-        transition: border-color 0.3s;
-    }
-
-    .filter-group input[type="text"]:focus {
-        outline: none;
-        border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-
-    .btn-filter {
-        background: #2563eb;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .btn-filter:hover {
-        background: #1e40af;
-        transform: translateY(-2px);
-    }
-
-    /* Категории */
-    .categories-section {
-        margin-bottom: 40px;
-    }
-
-    .section-heading {
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin-bottom: 20px;
-        color: #1e293b;
-        border-bottom: 3px solid #2563eb;
-        padding-bottom: 10px;
-        display: inline-block;
-    }
-
-    .categories-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 12px;
-    }
-
-    .category-badge {
-        padding: 10px 16px;
-        border-radius: 8px;
-        border: 2px solid;
-        text-decoration: none;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #1e293b;
-    }
-
-    .category-badge:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.2);
-    }
-
-    /* Статьи */
-    .articles-section {
-        margin: 40px 0;
-    }
-
-    .articles-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 24px;
-    }
-
-    .article-card {
-        background: #1e293b;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-        border: 1px solid #334155;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-
-    .article-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 30px rgba(37, 99, 235, 0.15);
-        border-color: #2563eb;
-    }
-
-    .article-image {
-        width: 100%;
-        height: 200px;
-        overflow: hidden;
-        background: linear-gradient(135deg, #2563eb, #1e40af);
-    }
-
-    .article-image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .article-card > div:not(.article-image) {
-        padding: 20px;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .article-title {
-        font-size: 1.1rem;
-        font-weight: 700;
-        margin: 0 0 12px 0;
-        color: #3b82f6;
-    }
-
-    .article-title a {
-        color: #3b82f6;
-        text-decoration: none;
-        transition: color 0.3s;
-    }
-
-    .article-title a:hover {
-        color: #60a5fa;
-    }
-
-    .article-meta {
-        display: flex;
-        gap: 16px;
-        font-size: 0.85rem;
-        color: #94a3b8;
-        margin-bottom: 12px;
-    }
-
-    .article-preview {
-        color: #cbd5e1;
-        line-height: 1.6;
-        margin-bottom: auto;
-        padding-bottom: 12px;
-    }
-
-    .read-more-link {
-        color: #60a5fa;
-        text-decoration: none;
-        font-weight: 600;
-        transition: color 0.3s;
-        display: inline-block;
-    }
-
-    .read-more-link:hover {
-        color: #3b82f6;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: #94a3b8;
-        font-size: 1.1rem;
-    }
-
-    /* Пагинация */
-    .pagination-block {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 20px;
-        margin-top: 40px;
-        padding: 30px;
-        background-color: #f8fafc;
-        border-radius: 12px;
-        flex-wrap: wrap;
-    }
-
-    .pagination-link {
-        color: #2563eb;
-        text-decoration: none;
-        font-weight: 600;
-        padding: 10px 18px;
-        border-radius: 8px;
-        transition: all 0.3s;
-        border: 2px solid #2563eb;
-    }
-
-    .pagination-link:hover {
-        background-color: #2563eb;
-        color: white;
-        transform: translateY(-2px);
-    }
-
-    .pagination-info {
-        color: #64748b;
-        font-weight: 600;
-    }
-
-    @media (max-width: 768px) {
-        .main-title { font-size: 1.8rem; }
-        .articles-grid { grid-template-columns: 1fr; }
-        .categories-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
-        .filter-form { flex-direction: column; }
-        .filter-group { flex-direction: column; width: 100%; }
-        .filter-group input { width: 100%; }
-        .pagination-block { gap: 10px; }
-    }
-</style>
 {% endblock %}

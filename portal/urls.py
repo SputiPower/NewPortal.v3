@@ -4,7 +4,9 @@ from .views import (
     IndexView, NewsList, NewsDetail, ArticleList, ArticleDetail,
     like_post, CategoryPosts, ProductList, ProductDetail,
     NewsSearchView, NewsCreateView, ArticleCreateView,
-    PostUpdateView, upgrade, subscribe_category, unsubscribe_category, test_email_view
+    PostUpdateView, upgrade, subscribe_category, unsubscribe_category, test_email_view,
+    profile_view, SmartFeedView, react_post, subscribe_author, unsubscribe_author,
+    UserPasswordChangeView, change_email_view
 )
 
 urlpatterns = [
@@ -27,6 +29,17 @@ urlpatterns = [
     path('category/<int:pk>/', CategoryPosts.as_view(), name='category_posts'),
     path('category/<int:pk>/subscribe/', subscribe_category, name='subscribe_category'),
     path('category/<int:pk>/unsubscribe/', unsubscribe_category, name='unsubscribe_category'),
+    path('author/<int:author_id>/subscribe/', subscribe_author, name='subscribe_author'),
+    path('author/<int:author_id>/unsubscribe/', unsubscribe_author, name='unsubscribe_author'),
+
+    # Реакции
+    path('posts/<int:post_id>/react/', react_post, name='react_post'),
+
+    # Профиль / безопасность / лента
+    path('profile/', profile_view, name='profile'),
+    path('profile/security/password/', UserPasswordChangeView.as_view(), name='password_change'),
+    path('profile/security/email/', change_email_view, name='email_change'),
+    path('feed/', SmartFeedView.as_view(), name='smart_feed'),
 
     # Продукты
     path('products/', ProductList.as_view(), name='products_list'),

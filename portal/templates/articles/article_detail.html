@@ -1,171 +1,72 @@
 {% extends 'base.html' %}
-
-{% load static %}
 {% load censor %}
 
 {% block title %}{{ article.title }}{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<div class="article-detail-wrapper">
-    <div class="article-header">
-        <h1 class="article-detail-title">{{ article.title|censor }}</h1>
-        <div class="article-detail-meta">
-            <span class="meta-item">✍️ Автор: <strong>{{ article.author.user.username }}</strong></span>
-            <span class="meta-item">📅 Дата публикации: <strong>{{ article.created_at|date:"d.m.Y в H:i" }}</strong></span>
-            <span class="meta-item">⭐ Рейтинг: <strong>{{ article.rating }}</strong></span>
-        </div>
-    </div>
+<article class="f66-detail-shell">
+  <header class="f66-detail-hero reveal-on-scroll">
+    <div class="f66-detail-overlay"></div>
+    {% with media_preview=article.media_files.first %}
+      {% if article.image %}
+      <img class="f66-detail-hero-image" src="{{ article.image.url }}" alt="{{ article.title }}">
+      {% elif media_preview %}
+      <img class="f66-detail-hero-image" src="{{ media_preview.image.url }}" alt="{{ article.title }}">
+      {% else %}
+      <div class="f66-detail-hero-image f66-media-fallback"><span>Article</span></div>
+      {% endif %}
+    {% endwith %}
 
-    {% if article.image %}
-        <div class="article-detail-image">
-            <img src="{{ article.image.url }}" alt="{{ article.title }}">
-        </div>
+    <div class="f66-detail-headline">
+      <p class="f66-kicker">NewsSputi • Статья</p>
+      <h1>{{ article.title|censor }}</h1>
+      <p class="f66-detail-meta">{{ article.created_at|date:"d.m.Y H:i" }} • {{ article.author.user.username }} • Рейтинг {{ article.rating }}</p>
+    </div>
+  </header>
+
+  <div class="f66-container f66-detail-content-wrap">
+    {% if article.media_files.all %}
+    <section class="f66-inline-gallery reveal-on-scroll" aria-label="Галерея изображений">
+      {% for media in article.media_files.all %}
+      <figure class="f66-inline-media glass-elevated">
+        <img src="{{ media.image.url }}" alt="PNG {{ forloop.counter }}">
+      </figure>
+      {% endfor %}
+    </section>
     {% endif %}
 
-    <div class="article-detail-content">
-        {{ article.text|linebreaks|censor }}
-    </div>
+    <section class="f66-detail-content glass-elevated reveal-on-scroll">
+      <div class="f66-typography">{{ article.text|linebreaks|censor }}</div>
+    </section>
 
-    <div class="article-footer">
-        <a href="{% url 'article_list' %}" class="btn-back">← Вернуться к статьям</a>
-    </div>
-</div>
+    {% if user.is_authenticated %}
+    <section class="detail-controls glass-elevated reveal-on-scroll">
+      <div class="reaction-row" data-post-id="{{ article.id }}">
+        <button class="reaction-btn {% if article.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like">👍 <span data-like-count>{{ article.likes_count|default:0 }}</span></button>
+        <button class="reaction-btn {% if article.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike">👎 <span data-dislike-count>{{ article.dislikes_count|default:0 }}</span></button>
+      </div>
+      {% if user != article.author.user %}
+      <div class="author-subscribe-controls">
+        {% if is_author_subscribed %}
+        <form method="post" action="{% url 'unsubscribe_author' article.author.id %}">
+          {% csrf_token %}
+          <button type="submit" class="f66-btn f66-btn-ghost">Отписаться от автора</button>
+        </form>
+        {% else %}
+        <form method="post" action="{% url 'subscribe_author' article.author.id %}">
+          {% csrf_token %}
+          <button type="submit" class="f66-btn f66-btn-primary">Подписаться на автора</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
 
-<style>
-    .article-detail-wrapper {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 20px;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
-    .article-header {
-        margin-bottom: 30px;
-        padding-bottom: 30px;
-        border-bottom: 2px solid #e2e8f0;
-    }
-
-    .article-detail-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 15px;
-        line-height: 1.3;
-    }
-
-    .article-detail-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        margin-top: 20px;
-    }
-
-    .meta-item {
-        color: #64748b;
-        font-size: 0.95rem;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .meta-item strong {
-        color: #2563eb;
-        font-weight: 600;
-    }
-
-    .article-detail-image {
-        width: 100%;
-        max-height: 500px;
-        border-radius: 16px;
-        overflow: hidden;
-        margin-bottom: 40px;
-        box-shadow: 0 10px 30px rgba(37, 99, 235, 0.15);
-    }
-
-    .article-detail-image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
-
-    .article-detail-content {
-        background: #f8fafc;
-        padding: 40px;
-        border-radius: 16px;
-        line-height: 1.8;
-        color: #334155;
-        margin-bottom: 40px;
-        border-left: 4px solid #2563eb;
-    }
-
-    .article-detail-content p {
-        margin-bottom: 20px;
-        font-size: 1.05rem;
-    }
-
-    .article-detail-content p:last-child {
-        margin-bottom: 0;
-    }
-
-    .article-detail-content strong {
-        color: #1e293b;
-        font-weight: 700;
-    }
-
-    .article-detail-content em {
-        color: #2563eb;
-        font-style: italic;
-    }
-
-    .article-footer {
-        text-align: left;
-        padding-top: 30px;
-    }
-
-    .btn-back {
-        display: inline-block;
-        background: #2563eb;
-        color: white;
-        padding: 14px 28px;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        border: 2px solid #2563eb;
-    }
-
-    .btn-back:hover {
-        background: #1e40af;
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
-    }
-
-    .btn-back:active {
-        transform: translateY(-1px);
-    }
-
-    @media (max-width: 768px) {
-        .article-detail-wrapper {
-            padding: 15px;
-        }
-
-        .article-detail-title {
-            font-size: 1.8rem;
-        }
-
-        .article-detail-meta {
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .article-detail-content {
-            padding: 20px;
-        }
-
-        .article-detail-content p {
-            font-size: 1rem;
-        }
-    }
-</style>
+    <footer class="f66-detail-actions reveal-on-scroll">
+      <a href="{% url 'article_list' %}" class="f66-btn f66-btn-ghost">Назад к статьям</a>
+    </footer>
+  </div>
+</article>
 {% endblock %}

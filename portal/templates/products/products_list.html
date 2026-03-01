@@ -1,152 +1,67 @@
-{% extends 'portal_base.html' %}
+{% extends 'base.html' %}
 
-{% block title %}Каталог товаров{% endblock %}
+{% block title %}NewsSputi | Каталог товаров{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<div class="products-wrapper">
-    <h1 class="main-title">🛒 Каталог товаров</h1>
+<div class="f66-shell">
+  <section class="f66-hero">
+    <div class="f66-hero-glow"></div>
+    <div class="f66-container">
+      <p class="f66-kicker reveal-on-scroll">Marketplace</p>
+      <h1 class="f66-title reveal-on-scroll">Каталог товаров</h1>
+      <p class="f66-subtitle reveal-on-scroll">Подборка актуальных предложений в едином премиальном интерфейсе.</p>
+    </div>
+  </section>
 
-    {# фильтр, если нужен #}
-    <div class="filter-section">
-        <form method="get" class="filter-form">
-            {{ filterset.form.as_p }}
-            <button type="submit" class="btn-filter">Применить</button>
+  <section class="f66-section">
+    <div class="f66-container">
+      <div class="panel glass-elevated reveal-on-scroll">
+        <form method="get" class="filter-form-premium">
+          {{ filterset.form.as_p }}
+          <button type="submit" class="f66-btn f66-btn-primary">Применить</button>
         </form>
-    </div>
+      </div>
 
-    {% if products %}
-    <div class="products-grid">
+      {% if products %}
+      <div class="f66-news-grid">
         {% for product in products %}
-            <div class="product-card">
-                <h3 class="product-title">
-                    <a href="{% url 'product_detail' product.pk %}">{{ product.name }}</a>
-                </h3>
-                <p class="product-price">💰 {{ product.price }} ₽</p>
+        <article class="f66-news-card glass-elevated reveal-on-scroll tilt-card" data-tilt-card>
+          {% if product.image %}
+          <a href="{% url 'product_detail' product.pk %}" class="f66-card-media"><img src="{{ product.image.url }}" alt="{{ product.name }}"></a>
+          {% else %}
+          <a href="{% url 'product_detail' product.pk %}" class="f66-card-media f66-media-fallback"><span>Product</span></a>
+          {% endif %}
+          <div class="f66-card-body">
+            <h3><a href="{% url 'product_detail' product.pk %}">{{ product.name }}</a></h3>
+            <p>{{ product.description|default:'Описание отсутствует'|truncatechars:140 }}</p>
+            <div class="f66-card-footer">
+              <a href="{% url 'product_detail' product.pk %}" class="f66-link">Открыть</a>
+              <span class="f66-rating">{{ product.price }} ₽</span>
             </div>
+          </div>
+        </article>
         {% endfor %}
+      </div>
+      {% else %}
+      <div class="f66-empty glass-elevated reveal-on-scroll">
+        <h3>Товаров пока нет</h3>
+        <p>Попробуйте изменить фильтр.</p>
+      </div>
+      {% endif %}
+
+      {% if is_paginated %}
+      <nav class="pagination-premium" aria-label="Пагинация">
+        {% if page_obj.has_previous %}
+          <a href="?page={{ page_obj.previous_page_number }}">Назад</a>
+        {% endif %}
+        <span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}">Вперёд</a>
+        {% endif %}
+      </nav>
+      {% endif %}
     </div>
-    {% else %}
-        <div class="empty-state">
-            <p>📭 Товаров не найдено.</p>
-        </div>
-    {% endif %}
-
-    {% if is_paginated %}
-        <nav class="pagination-block">
-            {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}" class="pagination-link">← Назад</a>
-            {% endif %}
-            <span class="pagination-info">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
-            {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}" class="pagination-link">Вперёд →</a>
-            {% endif %}
-        </nav>
-    {% endif %}
+  </section>
 </div>
-
-<style>
-    .products-wrapper {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 20px;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
-    .main-title {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 25px;
-    }
-
-    .filter-section {
-        margin-bottom: 30px;
-    }
-
-    .btn-filter {
-        background: #2563eb;
-        color: white;
-        border: none;
-        padding: 8px 16px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .btn-filter:hover {
-        background: #1e40af;
-    }
-
-    .products-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 20px;
-    }
-
-    .product-card {
-        background: #1e293b;
-        color: #e2e8f0;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        transition: transform 0.3s, box-shadow 0.3s;
-        text-align: center;
-    }
-
-    .product-card:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 12px 25px rgba(37, 99, 235, 0.15);
-    }
-
-    .product-title a {
-        color: #3b82f6;
-        text-decoration: none;
-        font-weight: 600;
-    }
-
-    .product-title a:hover {
-        color: #60a5fa;
-    }
-
-    .product-price {
-        margin-top: 12px;
-        font-size: 1.1rem;
-        color: #10b981;
-        font-weight: 700;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 40px;
-        color: #64748b;
-        font-size: 1.1rem;
-    }
-
-    .pagination-block {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 20px;
-        margin-top: 30px;
-    }
-
-    .pagination-link {
-        color: #2563eb;
-        text-decoration: none;
-        padding: 6px 12px;
-        border-radius: 6px;
-        border: 1px solid #2563eb;
-        transition: all 0.3s;
-    }
-
-    .pagination-link:hover {
-        background: #2563eb;
-        color: white;
-    }
-
-    .pagination-info {
-        color: #64748b;
-        font-weight: 600;
-    }
-</style>
 {% endblock %}

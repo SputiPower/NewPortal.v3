@@ -1,11 +1,13 @@
 import random
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import FileExtensionValidator
 from django.utils import timezone
 from django.apps import apps  # Для динамического импорта Comment
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
+from django.urls import reverse
 
 
 # ----------------- AUTHOR -----------------
@@ -87,36 +89,20 @@ class Post(models.Model):
     def __str__(self):
         return self.title
 
+    def get_absolute_url(self):
+        if self.type == self.ARTICLE:
+            return reverse('article_detail', kwargs={'pk': self.pk})
+        return reverse('news_detail', kwargs={'pk': self.pk})
+
     class Meta:
         ordering = ['-created_at']
         verbose_name = 'Пост'
         verbose_name_plural = 'Посты'
 
     def save(self, *args, **kwargs):
-        new_instance = self.pk is None  # True, если пост создаётся впервые
+        # Уведомления подписчиков отправляются из m2m_changed-сигнала
+        # после назначения категорий посту.
         super().save(*args, **kwargs)
-
-        # Отправка уведомления подписчикам категорий при создании нового поста
-        if new_instance:
-            for category in self.categories.all():
-                subscribers = category.subscribers.all()
-                for user in subscribers:
-                    html_content = render_to_string(
-                        'emails/new_article.html',
-                        {
-                            'user': user,
-                            'news': self,
-                            'category': category,
-                        }
-                    )
-                    msg = EmailMultiAlternatives(
-                        subject=self.title,
-                        body=f"Здравствуй, {user.username}. Новая статья в твоём любимом разделе!",
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        to=[user.email]
-                    )
-                    msg.attach_alternative(html_content, "text/html")
-                    msg.send()
 
 
 # ----------------- POST CATEGORY -----------------
@@ -130,6 +116,89 @@ class PostCategory(models.Model):
     class Meta:
         verbose_name = 'Связь поста и категории'
         verbose_name_plural = 'Связи постов и категорий'
+
+
+class PostMedia(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='media_files')
+    image = models.ImageField(
+        upload_to='posts/gallery/',
+        validators=[FileExtensionValidator(allowed_extensions=['png'])]
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'PNG #{self.pk} для поста {self.post_id}'
+
+    class Meta:
+        ordering = ['created_at']
+        verbose_name = 'Файл поста'
+        verbose_name_plural = 'Файлы поста'
+
+
+class Subscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
+    category = models.ForeignKey(
+        Category, on_delete=models.CASCADE, related_name='subscriptions',
+        null=True, blank=True
+    )
+    author = models.ForeignKey(
+        Author, on_delete=models.CASCADE, related_name='subscriptions',
+        null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        if self.category_id:
+            return f'{self.user.username} -> category:{self.category.name}'
+        return f'{self.user.username} -> author:{self.author.user.username}'
+
+    class Meta:
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    (models.Q(category__isnull=False) & models.Q(author__isnull=True)) |
+                    (models.Q(category__isnull=True) & models.Q(author__isnull=False))
+                ),
+                name='subscription_single_target',
+            ),
+            models.UniqueConstraint(
+                fields=['user', 'category'],
+                condition=models.Q(category__isnull=False),
+                name='uniq_user_category_subscription',
+            ),
+            models.UniqueConstraint(
+                fields=['user', 'author'],
+                condition=models.Q(author__isnull=False),
+                name='uniq_user_author_subscription',
+            ),
+        ]
+
+
+class Reaction(models.Model):
+    LIKE = 'like'
+    DISLIKE = 'dislike'
+    REACTION_CHOICES = [
+        (LIKE, 'Like'),
+        (DISLIKE, 'Dislike'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reactions')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='reactions')
+    reaction_type = models.CharField(max_length=7, choices=REACTION_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'{self.user.username}:{self.post_id}:{self.reaction_type}'
+
+    class Meta:
+        verbose_name = 'Реакция'
+        verbose_name_plural = 'Реакции'
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'post'], name='uniq_user_post_reaction'),
+        ]
 
 
 # ----------------- COMMENT -----------------
