@@ -34,10 +34,15 @@
     <button type="submit">Войти</button>
   </form>
 
-  {% if 'google' in socialaccount_providers %}
-    <a href="{% provider_login_url 'google' %}" class="google-btn">
-      Войти через Google
-    </a>
+  {% get_providers as socialaccount_providers %}
+  {% if socialaccount_providers %}
+  <div class="social-buttons">
+    {% for provider in socialaccount_providers %}
+      <a href="{% provider_login_url provider.id %}" class="{{ provider.id }}-btn" aria-label="Войти через {{ provider.name }}">
+        Войти через {{ provider.name }}
+      </a>
+    {% endfor %}
+  </div>
   {% endif %}
 
   <p class="footer-text">

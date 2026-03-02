@@ -21,12 +21,28 @@
           <form method="post" enctype="multipart/form-data" class="post-form">
             {% csrf_token %}
             {% for field in form %}
+            {% if field.name == 'categories' %}
+            <div class="form-field">
+              <label>{{ field.label }}</label>
+              <div class="category-pick-grid">
+                {% for checkbox in field %}
+                <label class="category-pill">
+                  {{ checkbox.tag }}
+                  <span>{{ checkbox.choice_label }}</span>
+                </label>
+                {% endfor %}
+              </div>
+              {% if field.help_text %}<small class="page-subtitle">{{ field.help_text }}</small>{% endif %}
+              {% if field.errors %}<span class="form-error">{{ field.errors.0 }}</span>{% endif %}
+            </div>
+            {% else %}
             <div class="form-field">
               <label for="{{ field.id_for_label }}">{{ field.label }}</label>
               {{ field }}
               {% if field.help_text %}<small class="page-subtitle">{{ field.help_text }}</small>{% endif %}
               {% if field.errors %}<span class="form-error">{{ field.errors.0 }}</span>{% endif %}
             </div>
+            {% endif %}
             {% endfor %}
 
             <div class="form-actions">
