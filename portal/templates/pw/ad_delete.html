@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Perfect World - Удаление объявления{% endblock %}
+{% block body_class %}f66-body{% endblock %}
+
+{% block content %}
+<div class="f66-shell">
+  <section class="f66-section">
+    <div class="f66-container" style="max-width: 640px;">
+      <section class="profile-card glass-elevated reveal-on-scroll">
+        <div class="form-head">
+          <h2>Удалить объявление?</h2>
+          <p class="page-subtitle">{{ object.title }}</p>
+        </div>
+        <form method="post" class="post-form">
+          {% csrf_token %}
+          <div class="form-actions">
+            <button type="submit" class="f66-btn f66-btn-primary">Удалить</button>
+            <a href="{{ object.get_absolute_url }}" class="f66-btn f66-btn-ghost">Отмена</a>
+          </div>
+        </form>
+      </section>
+    </div>
+  </section>
+</div>
+{% endblock %}

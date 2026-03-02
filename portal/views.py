@@ -1,4 +1,4 @@
-from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView, DeleteView, FormView
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy, reverse
 from django.views.decorators.http import require_POST
@@ -6,20 +6,31 @@ from django.http import JsonResponse
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, User
 from django.contrib import messages
+from django.contrib.auth import login
 from django.contrib.auth.views import PasswordChangeView
 from django.core.mail import EmailMultiAlternatives
 from django.core.cache import cache
 from django.template.loader import render_to_string
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Q, Count, Case, When, Value, IntegerField, F, Max
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from django.utils.translation import gettext as _
+from zoneinfo import available_timezones
 from datetime import timedelta
+from random import randint
 
-from .models import Post, Category, Author, Product, PostMedia, Subscription, Reaction
-from .forms import PostForm, ProfileForm, EmailChangeForm
+from .models import (
+    Post, Category, Author, Product, PostMedia, Subscription, Reaction,
+    BoardAd, AdResponse, EmailVerificationCode,
+)
+from .forms import (
+    PostForm, ProfileForm, EmailChangeForm,
+    PWSignupForm, EmailCodeVerifyForm, BoardAdForm, AdResponseForm,
+)
 from .filters import PostFilter, ProductFilter
 
 
@@ -273,7 +284,7 @@ class NewsCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             author=author, type='NW', created_at__gte=cutoff
         ).count()
         if recent_count >= 3:
-            form.add_error(None, 'Вы уже опубликовали 3 новости за последние 24 часа')
+            form.add_error(None, _('Вы уже опубликовали 3 новости за последние 24 часа'))
             return self.form_invalid(form)
 
         form.instance.author = author
@@ -373,15 +384,18 @@ def react_post(request, post_id):
 
     likes_count = post.reactions.filter(reaction_type=Reaction.LIKE).count()
     dislikes_count = post.reactions.filter(reaction_type=Reaction.DISLIKE).count()
-    post.rating = likes_count - dislikes_count
-    post.save(update_fields=['rating'])
+    # NOTE: modeltranslation queryset in this project is incompatible with
+    # Django 6 save(update_fields=...) path for translated models.
+    # Update rating through queryset update to avoid MultilingualQuerySet._update crash.
+    post_rating = likes_count - dislikes_count
+    Post.objects.filter(pk=post.pk).update(rating=post_rating)
 
     return JsonResponse({
         'ok': True,
         'reaction': reaction_type,
         'likes_count': likes_count,
         'dislikes_count': dislikes_count,
-        'rating': post.rating,
+        'rating': post_rating,
     })
 
 
@@ -397,14 +411,14 @@ def profile_view(request):
             profile_form = ProfileForm(request.POST, instance=user)
             if profile_form.is_valid():
                 profile_form.save()
-                messages.success(request, 'Профиль обновлён.')
+                messages.success(request, _('Профиль обновлён.'))
                 return redirect('profile')
         elif action == 'change_email':
             email_form = EmailChangeForm(user, request.POST)
             if email_form.is_valid():
                 user.email = email_form.cleaned_data['email']
                 user.save(update_fields=['email'])
-                messages.success(request, 'Email успешно изменён.')
+                messages.success(request, _('Email успешно изменён.'))
                 return redirect('profile')
 
     user_author = Author.objects.filter(user=user).first()
@@ -436,9 +450,17 @@ def change_email_view(request):
     if request.method == 'POST' and form.is_valid():
         request.user.email = form.cleaned_data['email']
         request.user.save(update_fields=['email'])
-        messages.success(request, 'Email успешно изменён.')
+        messages.success(request, _('Email успешно изменён.'))
         return redirect('profile')
     return render(request, 'account/email_change.html', {'form': form})
+
+
+@require_POST
+def set_timezone_view(request):
+    tzname = request.POST.get('timezone')
+    if tzname and tzname in available_timezones():
+        request.session['django_timezone'] = tzname
+    return redirect(request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('home'))
 
 
 class UserPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
@@ -446,7 +468,7 @@ class UserPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
     success_url = reverse_lazy('profile')
 
     def form_valid(self, form):
-        messages.success(self.request, 'Пароль успешно изменён.')
+        messages.success(self.request, _('Пароль успешно изменён.'))
         return super().form_valid(form)
 
 
@@ -516,6 +538,230 @@ class SmartFeedView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         context['sort'] = self.request.GET.get('sort', 'relevance')
         return context
+
+
+# ----------------- PERFECT WORLD BOARD -----------------
+def _send_verification_code_email(user, code):
+    subject = 'Perfect World: код подтверждения регистрации'
+    body = (
+        f'Здравствуйте, {user.username}!\n\n'
+        f'Ваш код подтверждения: {code}\n'
+        'Код действует 15 минут.\n\n'
+        'Если вы не регистрировались, просто проигнорируйте это письмо.'
+    )
+    msg = EmailMultiAlternatives(
+        subject=subject,
+        body=body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
+    )
+    msg.send()
+
+
+class PWSignupView(FormView):
+    template_name = 'pw/signup.html'
+    form_class = PWSignupForm
+    success_url = reverse_lazy('pw_verify_email')
+
+    def form_valid(self, form):
+        with transaction.atomic():
+            user = form.save(commit=False)
+            user.email = form.cleaned_data['email']
+            user.is_active = False
+            user.save()
+
+            code = f'{randint(0, 999999):06d}'
+            EmailVerificationCode.objects.update_or_create(
+                user=user,
+                defaults={
+                    'code': code,
+                    'expires_at': timezone.now() + timedelta(minutes=15),
+                    'is_used': False,
+                },
+            )
+        _send_verification_code_email(user, code)
+        messages.info(self.request, 'Код подтверждения отправлен на указанную почту.')
+        return super().form_valid(form)
+
+
+class PWVerifyEmailCodeView(FormView):
+    template_name = 'pw/verify_email.html'
+    form_class = EmailCodeVerifyForm
+    success_url = reverse_lazy('pw_ad_list')
+
+    def form_valid(self, form):
+        email = form.cleaned_data['email'].strip().lower()
+        code = form.cleaned_data['code'].strip()
+
+        user = User.objects.filter(email__iexact=email).first()
+        if user is None:
+            form.add_error('email', 'Пользователь с таким email не найден.')
+            return self.form_invalid(form)
+
+        code_obj = EmailVerificationCode.objects.filter(user=user).first()
+        if code_obj is None:
+            form.add_error('code', 'Код не найден. Запросите регистрацию повторно.')
+            return self.form_invalid(form)
+        if code_obj.is_used:
+            form.add_error('code', 'Этот код уже использован.')
+            return self.form_invalid(form)
+        if code_obj.is_expired():
+            form.add_error('code', 'Срок действия кода истек. Зарегистрируйтесь заново.')
+            return self.form_invalid(form)
+        if code_obj.code != code:
+            form.add_error('code', 'Неверный код подтверждения.')
+            return self.form_invalid(form)
+
+        user.is_active = True
+        user.save(update_fields=['is_active'])
+        code_obj.is_used = True
+        code_obj.save(update_fields=['is_used'])
+        login(self.request, user, backend='django.contrib.auth.backends.ModelBackend')
+        messages.success(self.request, 'Email подтвержден. Добро пожаловать в Perfect World Board.')
+        return super().form_valid(form)
+
+
+class PWAdListView(ListView):
+    model = BoardAd
+    template_name = 'pw/ad_list.html'
+    context_object_name = 'ads'
+    paginate_by = 10
+
+    def get_queryset(self):
+        queryset = BoardAd.objects.select_related('author')
+        category = self.request.GET.get('category')
+        search = self.request.GET.get('q')
+        if category:
+            queryset = queryset.filter(category=category)
+        if search:
+            queryset = queryset.filter(Q(title__icontains=search) | Q(content__icontains=search))
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['category_choices'] = BoardAd.CATEGORY_CHOICES
+        context['selected_category'] = self.request.GET.get('category', '')
+        context['q'] = self.request.GET.get('q', '')
+        return context
+
+
+class PWAdDetailView(DetailView):
+    model = BoardAd
+    template_name = 'pw/ad_detail.html'
+    context_object_name = 'ad'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['response_form'] = AdResponseForm()
+        context['responses'] = self.object.responses.select_related('author')
+        return context
+
+
+class PWAdCreateView(LoginRequiredMixin, CreateView):
+    model = BoardAd
+    form_class = BoardAdForm
+    template_name = 'pw/ad_form.html'
+
+    def form_valid(self, form):
+        form.instance.author = self.request.user
+        messages.success(self.request, 'Объявление опубликовано.')
+        return super().form_valid(form)
+
+
+class PWAdUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = BoardAd
+    form_class = BoardAdForm
+    template_name = 'pw/ad_form.html'
+
+    def test_func(self):
+        return self.get_object().author_id == self.request.user.id
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Объявление обновлено.')
+        return super().form_valid(form)
+
+
+class PWAdDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = BoardAd
+    template_name = 'pw/ad_delete.html'
+    success_url = reverse_lazy('pw_ad_list')
+
+    def test_func(self):
+        return self.get_object().author_id == self.request.user.id
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'Объявление удалено.')
+        return super().delete(request, *args, **kwargs)
+
+
+@login_required
+@require_POST
+def create_ad_response(request, pk):
+    ad = get_object_or_404(BoardAd, pk=pk)
+    if ad.author_id == request.user.id:
+        messages.error(request, 'Нельзя отправить отклик на собственное объявление.')
+        return redirect(ad.get_absolute_url())
+
+    form = AdResponseForm(request.POST)
+    if form.is_valid():
+        response, created = AdResponse.objects.get_or_create(
+            ad=ad,
+            author=request.user,
+            defaults={'text': form.cleaned_data['text']},
+        )
+        if not created:
+            response.text = form.cleaned_data['text']
+            response.save(update_fields=['text'])
+            messages.info(request, 'Ваш отклик обновлен.')
+        else:
+            messages.success(request, 'Отклик отправлен.')
+    else:
+        messages.error(request, 'Не удалось отправить отклик. Проверьте текст.')
+    return redirect(ad.get_absolute_url())
+
+
+class MyAdResponsesView(LoginRequiredMixin, TemplateView):
+    template_name = 'pw/my_responses.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        my_ads = BoardAd.objects.filter(author=self.request.user).order_by('-created_at')
+        selected_ad_id = self.request.GET.get('ad')
+        responses = AdResponse.objects.select_related('author', 'ad').filter(ad__author=self.request.user)
+        if selected_ad_id:
+            responses = responses.filter(ad_id=selected_ad_id)
+
+        context['my_ads'] = my_ads
+        context['responses'] = responses
+        context['selected_ad_id'] = selected_ad_id or ''
+        return context
+
+
+@login_required
+@require_POST
+def accept_ad_response(request, pk):
+    response = get_object_or_404(AdResponse.objects.select_related('ad'), pk=pk)
+    if response.ad.author_id != request.user.id:
+        messages.error(request, 'Недостаточно прав.')
+        return redirect('pw_my_responses')
+
+    response.is_accepted = True
+    response.save(update_fields=['is_accepted'])
+    messages.success(request, 'Отклик принят. Пользователь уведомлен по email.')
+    return redirect('pw_my_responses')
+
+
+@login_required
+@require_POST
+def delete_ad_response(request, pk):
+    response = get_object_or_404(AdResponse.objects.select_related('ad'), pk=pk)
+    if response.ad.author_id != request.user.id:
+        messages.error(request, 'Недостаточно прав.')
+        return redirect('pw_my_responses')
+
+    response.delete()
+    messages.success(request, 'Отклик удален.')
+    return redirect('pw_my_responses')
 
 
 # ----------------- PRODUCTS -----------------

@@ -29,6 +29,36 @@ body {
     linear-gradient(180deg, #ffffff 0%, var(--f66-bg) 46%, var(--f66-bg-deep) 100%);
 }
 
+body.night-mode {
+  background:
+    radial-gradient(1100px 800px at -20% -20%, rgba(35, 72, 150, 0.22), transparent 60%),
+    radial-gradient(950px 700px at 120% 0%, rgba(0, 118, 168, 0.2), transparent 58%),
+    linear-gradient(180deg, #091126 0%, #0f1c3d 52%, #132750 100%);
+}
+
+body.night-mode .navbar-custom {
+  background: rgba(16, 26, 54, 0.72);
+  border-bottom-color: rgba(184, 207, 255, 0.2);
+}
+
+body.night-mode .nav-shell {
+  background: rgba(26, 40, 76, 0.62);
+  border-color: rgba(184, 207, 255, 0.24);
+}
+
+body.night-mode .navbar-brand,
+body.night-mode .navbar-custom .nav-link,
+body.night-mode .profile-link {
+  color: #dde7ff !important;
+}
+
+body.night-mode .navbar-custom .nav-link.active,
+body.night-mode .navbar-custom .nav-link:hover,
+body.night-mode .profile-link:hover {
+  color: #ffffff !important;
+  background: rgba(53, 76, 128, 0.75);
+}
+
 a {
   text-decoration: none;
 }
@@ -79,6 +109,32 @@ a {
   display: flex;
   align-items: center;
   flex: 0 0 auto;
+}
+
+.nav-tool-form {
+  margin: 0;
+}
+
+.nav-select {
+  border: 1px solid rgba(21, 33, 74, 0.14);
+  background: rgba(255, 255, 255, 0.88);
+  color: #2d3753;
+  border-radius: 10px;
+  padding: 0.35rem 1.7rem 0.35rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  max-width: 160px;
+}
+
+.nav-select-sm {
+  max-width: 110px;
+}
+
+body.night-mode .nav-select {
+  background: rgba(36, 54, 99, 0.9);
+  color: #e9f0ff;
+  border-color: rgba(170, 196, 255, 0.34);
 }
 
 .nav-center {
@@ -957,4 +1013,28 @@ a {
     filter: none;
     transform: none;
   }
+}
+
+.pw-heading-wrap {
+  padding-top: 6.2rem;
+  margin-bottom: 1.2rem;
+}
+
+.pw-heading-card {
+  border: 1px solid rgba(10, 132, 255, 0.2);
+  border-radius: 18px;
+  background: linear-gradient(125deg, rgba(10, 132, 255, 0.12), rgba(255, 255, 255, 0.88));
+  backdrop-filter: blur(8px);
+  padding: 1rem 1.25rem;
+}
+
+.pw-heading-card h1 {
+  margin: 0;
+  font-size: clamp(1.4rem, 3.5vw, 2rem);
+  color: #0f2f7a;
+}
+
+.pw-heading-card p {
+  margin: 0.3rem 0 0;
+  color: #4f5b73;
 }

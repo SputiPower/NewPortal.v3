@@ -1,9 +1,13 @@
 from django.contrib import admin
+from modeltranslation.admin import TranslationAdmin
 
 from .models import (
     Author,
     Category,
     Comment,
+    BoardAd,
+    AdResponse,
+    EmailVerificationCode,
     Post,
     PostCategory,
     PostMedia,
@@ -24,7 +28,7 @@ def reset_post_rating(modeladmin, request, queryset):
 
 
 @admin.register(Post)
-class PostAdmin(admin.ModelAdmin):
+class PostAdmin(TranslationAdmin, admin.ModelAdmin):
     list_display = ('id', 'title', 'type', 'author', 'created_at', 'rating')
     list_filter = ('type', 'created_at', 'categories')
     search_fields = ('title', 'text', 'author__user__username', 'categories__name')
@@ -43,7 +47,7 @@ class AuthorAdmin(admin.ModelAdmin):
 
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+class CategoryAdmin(TranslationAdmin, admin.ModelAdmin):
     list_display = ('id', 'name', 'color', 'subscribers_count')
     list_filter = ('color',)
     search_fields = ('name',)
@@ -108,3 +112,27 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ('name', 'description', 'category__name')
     date_hierarchy = 'created_at'
     list_select_related = ('category',)
+
+
+@admin.register(BoardAd)
+class BoardAdAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'category', 'author', 'created_at', 'updated_at')
+    list_filter = ('category', 'created_at', 'updated_at')
+    search_fields = ('title', 'content', 'author__username')
+    list_select_related = ('author',)
+
+
+@admin.register(AdResponse)
+class AdResponseAdmin(admin.ModelAdmin):
+    list_display = ('id', 'ad', 'author', 'is_accepted', 'created_at')
+    list_filter = ('is_accepted', 'created_at')
+    search_fields = ('text', 'ad__title', 'author__username')
+    list_select_related = ('ad', 'author')
+
+
+@admin.register(EmailVerificationCode)
+class EmailVerificationCodeAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'code', 'is_used', 'expires_at', 'created_at')
+    list_filter = ('is_used', 'expires_at', 'created_at')
+    search_fields = ('user__username', 'user__email', 'code')
+    list_select_related = ('user',)

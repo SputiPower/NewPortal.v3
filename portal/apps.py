@@ -6,3 +6,4 @@ class PortalConfig(AppConfig):
 
     def ready(self):
         import portal.signals
+        import portal.translation

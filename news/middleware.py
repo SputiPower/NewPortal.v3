@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.http import HttpResponse
 from django.middleware.csrf import get_token
+from django.utils import timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 class EnsureCSRFCookieMiddleware:
@@ -78,3 +80,19 @@ class ContentSecurityPolicyMiddleware:
             else:
                 directives.append(directive)
         return '; '.join(directives)
+
+
+class TimezoneMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        tzname = request.session.get('django_timezone')
+        if tzname:
+            try:
+                timezone.activate(ZoneInfo(tzname))
+            except ZoneInfoNotFoundError:
+                timezone.deactivate()
+        else:
+            timezone.deactivate()
+        return self.get_response(request)
