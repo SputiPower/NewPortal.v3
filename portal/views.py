@@ -5,10 +5,12 @@ from django.views.decorators.http import require_POST
 from django.http import JsonResponse
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.models import Group
 from django.contrib import messages
 from django.contrib.auth.views import PasswordChangeView
 from django.core.mail import EmailMultiAlternatives
+from django.core.cache import cache
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.db.models import Q, Count, Case, When, Value, IntegerField, F, Max
@@ -23,6 +25,7 @@ from .filters import PostFilter, ProductFilter
 
 # ----------------- UPGRADE ДО АВТОРА -----------------
 @login_required
+@require_POST
 def upgrade(request):
     authors_group, _ = Group.objects.get_or_create(name='authors')
     if not request.user.groups.filter(name='authors').exists():
@@ -32,39 +35,39 @@ def upgrade(request):
 
 # ----------------- ПОДПИСКА НА КАТЕГОРИЮ -----------------
 @login_required
+@require_POST
 def subscribe_category(request, pk):
     category = get_object_or_404(Category, pk=pk)
-    if request.method == "POST":
-        if request.user not in category.subscribers.all():
-            category.subscribers.add(request.user)
-        Subscription.objects.get_or_create(user=request.user, category=category, author=None)
+    if request.user not in category.subscribers.all():
+        category.subscribers.add(request.user)
+    Subscription.objects.get_or_create(user=request.user, category=category, author=None)
     return redirect(request.META.get('HTTP_REFERER', reverse('home')))
 
 
 # ----------------- ОТПИСКА ОТ КАТЕГОРИИ -----------------
 @login_required
+@require_POST
 def unsubscribe_category(request, pk):
     category = get_object_or_404(Category, pk=pk)
-    if request.method == "POST":
-        if request.user in category.subscribers.all():
-            category.subscribers.remove(request.user)
-        Subscription.objects.filter(user=request.user, category=category).delete()
+    if request.user in category.subscribers.all():
+        category.subscribers.remove(request.user)
+    Subscription.objects.filter(user=request.user, category=category).delete()
     return redirect(request.META.get('HTTP_REFERER', reverse('home')))
 
 
 @login_required
+@require_POST
 def subscribe_author(request, author_id):
     author = get_object_or_404(Author, pk=author_id)
-    if request.method == "POST":
-        Subscription.objects.get_or_create(user=request.user, author=author, category=None)
+    Subscription.objects.get_or_create(user=request.user, author=author, category=None)
     return redirect(request.META.get('HTTP_REFERER', reverse('home')))
 
 
 @login_required
+@require_POST
 def unsubscribe_author(request, author_id):
     author = get_object_or_404(Author, pk=author_id)
-    if request.method == "POST":
-        Subscription.objects.filter(user=request.user, author=author).delete()
+    Subscription.objects.filter(user=request.user, author=author).delete()
     return redirect(request.META.get('HTTP_REFERER', reverse('home')))
 
 
@@ -210,25 +213,30 @@ class ArticleDetail(DetailView):
     template_name = 'articles/article_detail.html'
     context_object_name = 'article'
 
-    def get_queryset(self):
-        queryset = Post.objects.filter(type='AR').annotate(
-            likes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.LIKE), distinct=True),
-            dislikes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.DISLIKE), distinct=True),
-        )
-        if self.request.user.is_authenticated:
-            queryset = queryset.annotate(
-                user_reaction=Max(
-                    Case(
-                        When(reactions__user=self.request.user, then=F('reactions__reaction_type')),
-                        default=Value(None),
-                    )
-                )
+    def get_object(self, queryset=None):
+        cache_key = f'article-{self.kwargs["pk"]}'
+        article = cache.get(cache_key)
+        if article is None:
+            article = super().get_object(
+                queryset=Post.objects.filter(type='AR').select_related('author__user')
             )
-        return queryset
+            cache.set(cache_key, article, timeout=None)
+        return article
+
+    def get_queryset(self):
+        return Post.objects.filter(type='AR')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         article = context['article']
+        article.likes_count = article.reactions.filter(reaction_type=Reaction.LIKE).count()
+        article.dislikes_count = article.reactions.filter(reaction_type=Reaction.DISLIKE).count()
+        article.user_reaction = None
+        if self.request.user.is_authenticated:
+            article.user_reaction = article.reactions.filter(user=self.request.user).values_list(
+                'reaction_type', flat=True
+            ).first()
+
         if self.request.user.is_authenticated:
             context['is_author_subscribed'] = Subscription.objects.filter(
                 user=self.request.user, author=article.author
@@ -338,6 +346,7 @@ class NewsDeleteView(LoginRequiredMixin, DeleteView):
 
 
 # ----------------- LIKE -----------------
+@login_required
 @require_POST
 def like_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
@@ -552,6 +561,8 @@ def word_box_view(request):
 
 
 from .utils import send_test_email
+@staff_member_required
+@require_POST
 def test_email_view(request):
     send_test_email()  # отправка в фоне
     return render(request, "portal/test_email.html", {"message": "✅ Письмо отправляется в фоне! Проверь почту через несколько секунд."})

@@ -2,6 +2,7 @@ import random
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator
+from django.core.cache import cache
 from django.utils import timezone
 from django.apps import apps  # Для динамического импорта Comment
 from django.core.mail import EmailMultiAlternatives
@@ -103,6 +104,8 @@ class Post(models.Model):
         # Уведомления подписчиков отправляются из m2m_changed-сигнала
         # после назначения категорий посту.
         super().save(*args, **kwargs)
+        if self.type == self.ARTICLE:
+            cache.delete(f'article-{self.pk}')
 
 
 # ----------------- POST CATEGORY -----------------

@@ -10,23 +10,50 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
+# Load environment variables from .env
+load_dotenv()
+
+
+def env_bool(name, default=False):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def env_list(name, default=''):
+    value = os.getenv(name, default)
+    return [item.strip() for item in value.split(',') if item.strip()]
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ob@u9&evz8-&+4q9xx$tdq(xro=+p!rwo1a+d9o@d#&e(%$l$e'
+SECRET_KEY = os.getenv(
+    'DJANGO_SECRET_KEY',
+    'dev-only-change-me-4u7H!m2K#p9Q@x5L$z8R^n3T&v6Y*w1A+s0D?f',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool('DEBUG', True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', '127.0.0.1,localhost')
+CSRF_TRUSTED_ORIGINS = env_list(
+    'CSRF_TRUSTED_ORIGINS',
+    'http://127.0.0.1:8000,http://localhost:8000',
+)
 
 
 # Application definition
@@ -55,16 +82,19 @@ INSTALLED_APPS = [
     'django_apscheduler',
 ]
 
-SITE_ID = 2
+SITE_ID = int(os.getenv('SITE_ID', '2'))
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'news.middleware.EnsureCSRFCookieMiddleware',
+    'news.middleware.CORSMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'news.middleware.ContentSecurityPolicyMiddleware',
 
     'allauth.account.middleware.AccountMiddleware',
 ]
@@ -94,9 +124,6 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
-
-import os
-
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR / 'media')
 WSGI_APPLICATION = 'news.wsgi.application'
@@ -105,12 +132,26 @@ WSGI_APPLICATION = 'news.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DB_ENGINE = os.getenv('DB_ENGINE', 'sqlite').strip().lower()
+
+if DB_ENGINE == 'postgres':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'newsportal'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD', ''),
+            'HOST': os.getenv('DB_HOST', '127.0.0.1'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -122,6 +163,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 12},
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -143,11 +185,69 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Session and cookie hardening
+SESSION_COOKIE_AGE = int(os.getenv('SESSION_COOKIE_AGE', '43200'))  # 12h
+SESSION_EXPIRE_AT_BROWSER_CLOSE = env_bool('SESSION_EXPIRE_AT_BROWSER_CLOSE', True)
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = env_bool('SESSION_COOKIE_SECURE', not DEBUG)
+SESSION_COOKIE_SAMESITE = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
+CSRF_COOKIE_HTTPONLY = env_bool('CSRF_COOKIE_HTTPONLY', False)
+CSRF_COOKIE_SECURE = env_bool('CSRF_COOKIE_SECURE', not DEBUG)
+CSRF_COOKIE_SAMESITE = os.getenv('CSRF_COOKIE_SAMESITE', 'Lax')
+
+# HTTPS and browser security headers
+SECURE_SSL_REDIRECT = env_bool('SECURE_SSL_REDIRECT', not DEBUG)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000' if not DEBUG else '0'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', not DEBUG)
+SECURE_HSTS_PRELOAD = env_bool('SECURE_HSTS_PRELOAD', not DEBUG)
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = os.getenv('SECURE_REFERRER_POLICY', 'strict-origin-when-cross-origin')
+X_FRAME_OPTIONS = os.getenv('X_FRAME_OPTIONS', 'DENY')
+
+# CORS allow-list
+CORS_ALLOWED_ORIGINS = env_list(
+    'CORS_ALLOWED_ORIGINS',
+    'http://127.0.0.1:8000,http://localhost:8000',
+)
+CORS_ALLOW_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+CORS_ALLOW_HEADERS = [
+    'Accept',
+    'Accept-Language',
+    'Content-Language',
+    'Content-Type',
+    'Origin',
+    'Authorization',
+    'X-Requested-With',
+    'X-CSRFToken',
+]
+CORS_ALLOW_CREDENTIALS = env_bool('CORS_ALLOW_CREDENTIALS', True)
+
+# CSP allow-list
+CONTENT_SECURITY_POLICY = {
+    'default-src': ["'self'"],
+    'base-uri': ["'self'"],
+    'object-src': ["'none'"],
+    'form-action': ["'self'"],
+    'frame-ancestors': ["'self'"],
+    'script-src': ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
+    'style-src': ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
+    'img-src': ["'self'", 'data:', 'https:'],
+    'font-src': ["'self'", 'data:', 'https:'],
+    'connect-src': ["'self'", 'https://api.open-meteo.com'],
+    'frame-src': ["'self'", 'https://cybermap.kaspersky.com'],
+}
+CSP_REPORT_ONLY = env_bool('CSP_REPORT_ONLY', False)
+
 
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 ACCOUNT_RATE_LIMITS = {
-    'login_failed': '5/5m'
+    'login': '20/m',
+    'login_failed': '5/5m',
+    'signup': '5/h',
+    'reset_password': '5/h',
+    'change_password': '10/h',
 }
 
 # работает подтверждение почты, чтобы пользователь получал письмо с активацией
@@ -159,6 +259,9 @@ ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 ACCOUNT_FORMS = {
     'signup': 'sign.forms.CommonSignupForm',
 }
+
+# Соц. вход по клику с кнопки сразу уводит к провайдеру (без промежуточной формы подтверждения)
+SOCIALACCOUNT_LOGIN_ON_GET = True
 
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
@@ -174,15 +277,6 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 DEFAULT_FROM_EMAIL = 'noreply@newsportal.com'
-
-
-
-
-import os
-from dotenv import load_dotenv
-
-# Загружаем переменные из .env
-load_dotenv()
 
 EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "gmail").lower()
 
@@ -207,7 +301,7 @@ APSCHEDULER_RUN_NOW_TIMEOUT = 25  # Seconds
 # Celery Configuration
 CELERY_BROKER_URL = os.getenv(
     'CELERY_BROKER_URL',
-    'redis://:RaOHBEYoA7dn0UTV6mfJlTEh0UhSXptV@redis-13497.c62.us-east-1-4.ec2.cloud.redislabs.com:13497/0',
+    'redis://127.0.0.1:6379/0',
 )
 CELERY_RESULT_BACKEND = os.getenv(
     'CELERY_RESULT_BACKEND',
@@ -227,7 +321,120 @@ APSCHEDULER_ENABLE_WEEKLY_DIGEST = os.getenv(
     '0',
 ) in {'1', 'true', 'True'}
 
+# Cache configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': BASE_DIR / 'cache_files',
+    }
+}
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
+
+ADMINS = [('Admin', os.getenv('ADMIN_EMAIL', os.getenv('GMAIL_EMAIL_USER', 'admin@localhost')))]
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'console_dynamic': {
+            '()': 'news.logging_formatters.LevelBasedConsoleFormatter',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'general': {
+            'format': '%(asctime)s | %(levelname)s | %(module)s | %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'errors': {
+            'format': '%(asctime)s | %(levelname)s | %(message)s | %(pathname)s | %(exc_info)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'security': {
+            'format': '%(asctime)s | %(levelname)s | %(module)s | %(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'mail': {
+            'format': '%(asctime)s | %(levelname)s | %(message)s | %(pathname)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+    },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'level': 'DEBUG',
+            'filters': ['require_debug_true'],
+            'formatter': 'console_dynamic',
+        },
+        'general_file': {
+            'class': 'logging.FileHandler',
+            'level': 'INFO',
+            'filters': ['require_debug_false'],
+            'formatter': 'general',
+            'filename': str(LOGS_DIR / 'general.log'),
+            'encoding': 'utf-8',
+        },
+        'errors_file': {
+            'class': 'logging.FileHandler',
+            'level': 'ERROR',
+            'formatter': 'errors',
+            'filename': str(LOGS_DIR / 'errors.log'),
+            'encoding': 'utf-8',
+        },
+        'security_file': {
+            'class': 'logging.FileHandler',
+            'level': 'INFO',
+            'formatter': 'security',
+            'filename': str(LOGS_DIR / 'security.log'),
+            'encoding': 'utf-8',
+        },
+        'mail_admins': {
+            'class': 'django.utils.log.AdminEmailHandler',
+            'level': 'ERROR',
+            'filters': ['require_debug_false'],
+            'formatter': 'mail',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'general_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['errors_file', 'mail_admins'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['errors_file', 'mail_admins'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.template': {
+            'handlers': ['errors_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['errors_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['security_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
 
 

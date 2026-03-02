@@ -69,7 +69,11 @@
     return '';
   }
 
-  const csrfToken = getCookie('csrftoken');
+  const csrfToken =
+    getCookie('csrftoken') ||
+    document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+    document.querySelector('input[name="csrfmiddlewaretoken"]')?.value ||
+    '';
   const reactionRows = document.querySelectorAll('.reaction-row[data-post-id]');
 
   reactionRows.forEach((row) => {

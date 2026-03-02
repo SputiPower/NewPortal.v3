@@ -8,20 +8,53 @@
 <div class="f66-shell">
   <section class="f66-hero" aria-label="Главный блок">
     <div class="f66-hero-glow"></div>
-    <div class="f66-container">
-      <p class="f66-kicker reveal-on-scroll">NewsSputi • Технологический стандарт 2066</p>
-      <h1 class="f66-title reveal-on-scroll">Глобальные новости в новом визуальном измерении.</h1>
-      <p class="f66-subtitle reveal-on-scroll">
-        Чистая композиция, воздух, глубина и кинематографическая подача.
-        Всё важное в одном технологичном пространстве.
-      </p>
-      <div class="f66-actions reveal-on-scroll">
-        <a href="{% url 'news_list' %}" class="f66-btn f66-btn-primary">Открыть новости</a>
-        <a href="{% url 'article_list' %}" class="f66-btn f66-btn-ghost">Читать статьи</a>
+    <div class="f66-container f66-hero-grid">
+      <div class="f66-hero-left">
+        <p class="f66-kicker reveal-on-scroll">NewsSputi • Технологический стандарт 2066</p>
+        <h1 class="f66-title reveal-on-scroll">Глобальные новости в новом визуальном измерении.</h1>
+        <p class="f66-subtitle reveal-on-scroll">
+          Чистая композиция, воздух, глубина и кинематографическая подача.
+          Всё важное в одном технологичном пространстве.
+        </p>
+        <div class="f66-actions reveal-on-scroll">
+          <a href="{% url 'news_list' %}" class="f66-btn f66-btn-primary">Открыть новости</a>
+          <a href="{% url 'article_list' %}" class="f66-btn f66-btn-ghost">Читать статьи</a>
+        </div>
       </div>
+
+      <aside class="weather-card reveal-on-scroll" data-weather-card>
+        <div class="weather-sky">
+          <div class="weather-top">
+            <div class="weather-city-wrap">
+              <span class="weather-pin">◉</span>
+              <select class="weather-city-select" data-weather-city-select>
+                <option value="moscow">Москва</option>
+                <option value="saint_petersburg">Санкт-Петербург</option>
+                <option value="new_york">Нью-Йорк</option>
+                <option value="london">Лондон</option>
+                <option value="tokyo">Токио</option>
+              </select>
+            </div>
+            <span class="weather-icon" data-weather-icon>⛅</span>
+          </div>
+          <div class="weather-main">
+            <div class="weather-temp" data-weather-temp>--°</div>
+            <p class="weather-status" data-weather-status>Загрузка...</p>
+          </div>
+          <div class="weather-metrics">
+            <span>💨 <b data-weather-wind>--</b> км/ч</span>
+            <span>🧭 <b data-weather-pressure>--</b> hPa</span>
+            <span>💧 <b data-weather-humidity>--</b>%</span>
+          </div>
+          <div class="weather-hours" data-weather-hours></div>
+        </div>
+        <div class="weather-forecast">
+          <h3>Прогноз</h3>
+          <div class="weather-days" data-weather-days></div>
+        </div>
+      </aside>
     </div>
   </section>
-
   <section class="f66-section" id="latest">
     <div class="f66-container">
       <header class="f66-section-head reveal-on-scroll">
@@ -68,6 +101,21 @@
     </div>
   </section>
 
+  <section class="f66-section" id="cybermap">
+    <div class="f66-container">
+      <header class="f66-section-head reveal-on-scroll">
+        <p class="f66-kicker">Безопасность</p>
+        <h2>Карта киберугроз в реальном времени</h2>
+      </header>
+
+      <div class="glass-elevated reveal-on-scroll p-3 p-md-4" style="border-radius: 18px;">
+        <div class="d-flex justify-content-center">
+          <iframe width="592" height="640" src="https://cybermap.kaspersky.com/ru/widget/dynamic/dark" frameborder="0"></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
   {% if user.is_authenticated %}
   <section class="f66-section f66-author-zone">
     <div class="f66-container">
@@ -76,7 +124,10 @@
         <p>Создавайте новости и статьи с поддержкой PNG-галерей и премиальным отображением.</p>
         <div class="f66-actions">
           {% if is_not_author %}
-            <a href="{% url 'upgrade' %}" class="f66-btn f66-btn-primary">Стать автором</a>
+            <form action="{% url 'upgrade' %}" method="post" class="d-inline">
+              {% csrf_token %}
+              <button type="submit" class="f66-btn f66-btn-primary">Стать автором</button>
+            </form>
           {% else %}
             <a href="{% url 'news_create' %}" class="f66-btn f66-btn-primary">Создать новость</a>
             <a href="{% url 'article_create' %}" class="f66-btn f66-btn-ghost">Создать статью</a>
@@ -87,4 +138,134 @@
   </section>
   {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ block.super }}
+<script>
+  (function () {
+    const card = document.querySelector('[data-weather-card]');
+    if (!card) return;
+
+    const citySelectEl = card.querySelector('[data-weather-city-select]');
+    const statusEl = card.querySelector('[data-weather-status]');
+    const tempEl = card.querySelector('[data-weather-temp]');
+    const iconEl = card.querySelector('[data-weather-icon]');
+    const windEl = card.querySelector('[data-weather-wind]');
+    const humidityEl = card.querySelector('[data-weather-humidity]');
+    const pressureEl = card.querySelector('[data-weather-pressure]');
+    const hoursEl = card.querySelector('[data-weather-hours]');
+    const daysEl = card.querySelector('[data-weather-days]');
+
+    const cities = {
+      moscow: { name: 'Москва', lat: 55.7558, lon: 37.6173, tz: 'Europe/Moscow' },
+      saint_petersburg: { name: 'Санкт-Петербург', lat: 59.9343, lon: 30.3351, tz: 'Europe/Moscow' },
+      new_york: { name: 'Нью-Йорк', lat: 40.7128, lon: -74.0060, tz: 'America/New_York' },
+      london: { name: 'Лондон', lat: 51.5072, lon: -0.1276, tz: 'Europe/London' },
+      tokyo: { name: 'Токио', lat: 35.6762, lon: 139.6503, tz: 'Asia/Tokyo' },
+    };
+    const cityKeyStorage = 'newsportal_weather_city';
+    let selectedCityKey = localStorage.getItem(cityKeyStorage) || 'moscow';
+    const weatherCodeMap = {
+      0: ['Ясно', '☀️'], 1: ['Преимущественно ясно', '🌤️'], 2: ['Переменная облачность', '⛅'], 3: ['Пасмурно', '☁️'],
+      45: ['Туман', '🌫️'], 48: ['Туман', '🌫️'], 51: ['Морось', '🌦️'], 53: ['Морось', '🌦️'], 55: ['Морось', '🌧️'],
+      61: ['Дождь', '🌧️'], 63: ['Дождь', '🌧️'], 65: ['Сильный дождь', '🌧️'], 71: ['Снег', '🌨️'], 73: ['Снег', '🌨️'],
+      75: ['Сильный снег', '❄️'], 80: ['Ливень', '🌧️'], 81: ['Ливень', '🌧️'], 82: ['Сильный ливень', '⛈️'], 95: ['Гроза', '⛈️'],
+    };
+    const codeMeta = (code) => weatherCodeMap[code] || ['Переменная погода', '🌤️'];
+    function formatHour(iso, tz) {
+      return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: tz });
+    }
+
+    function dayLabel(index, iso, tz) {
+      if (index === 0) return 'Сегодня';
+      if (index === 1) return 'Завтра';
+      return new Date(iso).toLocaleDateString('ru-RU', { weekday: 'long', timeZone: tz });
+    }
+
+    async function loadWeather() {
+      const city = cities[selectedCityKey] || cities.moscow;
+      try {
+        statusEl.textContent = 'Обновление...';
+        const url = 'https://api.open-meteo.com/v1/forecast'
+          + '?latitude=' + city.lat
+          + '&longitude=' + city.lon
+          + '&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m,surface_pressure'
+          + '&hourly=temperature_2m,weather_code'
+          + '&daily=weather_code,temperature_2m_max,temperature_2m_min'
+          + '&forecast_days=4&timezone=' + encodeURIComponent(city.tz);
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error('weather request failed');
+        const data = await res.json();
+        const current = data.current || {};
+        const [status, icon] = codeMeta(current.weather_code);
+
+        if (citySelectEl) {
+          citySelectEl.value = selectedCityKey;
+        }
+        statusEl.textContent = status;
+        tempEl.textContent = Math.round(current.temperature_2m) + '°';
+        iconEl.textContent = icon;
+        windEl.textContent = Math.round(current.wind_speed_10m ?? 0);
+        humidityEl.textContent = Math.round(current.relative_humidity_2m ?? 0);
+        pressureEl.textContent = Math.round(current.surface_pressure ?? 0);
+
+        const times = data.hourly?.time || [];
+        const temps = data.hourly?.temperature_2m || [];
+        const codes = data.hourly?.weather_code || [];
+        let nowIdx = times.indexOf(current.time);
+        if (nowIdx < 0 && current.time) {
+          const currentTs = new Date(current.time).getTime();
+          nowIdx = times.findIndex((t) => new Date(t).getTime() >= currentTs);
+        }
+        nowIdx = Math.max(0, nowIdx);
+        hoursEl.innerHTML = '';
+        for (let i = nowIdx; i < Math.min(nowIdx + 4, times.length); i += 1) {
+          const [, hIcon] = codeMeta(codes[i]);
+          const item = document.createElement('div');
+          item.className = 'weather-hour';
+          item.innerHTML = '<span>' + formatHour(times[i], city.tz) + '</span><span>' + hIcon + '</span><b>' + Math.round(temps[i]) + '°</b>';
+          hoursEl.appendChild(item);
+        }
+
+        const dTime = data.daily?.time || [];
+        const dMax = data.daily?.temperature_2m_max || [];
+        const dMin = data.daily?.temperature_2m_min || [];
+        const dCode = data.daily?.weather_code || [];
+        daysEl.innerHTML = '';
+        for (let i = 0; i < Math.min(3, dTime.length); i += 1) {
+          const [, dIcon] = codeMeta(dCode[i]);
+          const row = document.createElement('div');
+          row.className = 'weather-day';
+          row.innerHTML = '<span>' + dayLabel(i, dTime[i], city.tz) + '</span><span>' + dIcon + '</span><b>' + Math.round(dMax[i]) + '° / ' + Math.round(dMin[i]) + '°</b>';
+          daysEl.appendChild(row);
+        }
+      } catch (e) {
+        statusEl.textContent = 'Недоступно';
+        tempEl.textContent = '--°';
+        iconEl.textContent = '⚠️';
+        windEl.textContent = '--';
+        humidityEl.textContent = '--';
+        pressureEl.textContent = '--';
+        hoursEl.innerHTML = '';
+        daysEl.innerHTML = '';
+      }
+    }
+
+    if (citySelectEl) {
+      if (!cities[selectedCityKey]) {
+        selectedCityKey = 'moscow';
+      }
+      citySelectEl.value = selectedCityKey;
+      citySelectEl.addEventListener('change', function () {
+        selectedCityKey = citySelectEl.value;
+        localStorage.setItem(cityKeyStorage, selectedCityKey);
+        loadWeather();
+      });
+    }
+
+    loadWeather();
+    setInterval(loadWeather, 10 * 60 * 1000);
+  })();
+</script>
 {% endblock %}

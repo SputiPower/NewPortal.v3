@@ -1,35 +1,66 @@
 # NewsPortal
 
-NewsPortal — это веб-приложение на Django для публикации новостей и статей.  
-Пользователи могут регистрироваться, входить через e-mail или Yandex, создавать статьи и новости, а также становиться авторами.
+NewsPortal — Django-проект для публикации новостей и статей с авторизацией, категориями, лайками и подписками.
 
----
+## Что есть в проекте
+- Лента новостей и статей
+- Роли пользователей (`common`, `authors`)
+- Создание/редактирование контента для авторов
+- Категории и подписки
+- Базовые меры безопасности (CSRF/CSP/CORS middleware)
+- Настроенное логирование (`logs/general.log`, `logs/errors.log`, `logs/security.log`)
 
-## Функционал
+## Быстрый запуск (локально)
+1. Клонировать репозиторий.
+2. Создать и активировать виртуальное окружение.
+3. Установить зависимости.
+4. Создать `.env` из шаблона.
+5. Выполнить миграции и запустить сервер.
 
-- Регистрация и вход пользователей  
-- Вход через Yandex OAuth  
-- Группы пользователей: `common` и `authors`  
-- Возможность стать автором  
-- Создание и редактирование новостей и статей (только для авторов)  
-- Лайки для постов  
-- Категории и фильтрация постов  
-- Поиск новостей  
+### Команды
+```bash
+git clone <repo-url>
+cd NewsPortal
+python -m venv .venv
+```
 
----
+Windows:
+```bash
+.venv\Scripts\activate
+```
 
-## Установка
-
-1. Клонируем репозиторий:
+macOS/Linux:
+```bash
+source .venv/bin/activate
+```
 
 ```bash
-git clone https://github.com/SputiPower/NewPortal.v3.git
-cd NewPortal.v3
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# macOS/Linux
-source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+Создать `.env`:
+- Скопировать `.env.example` в `.env`
+- При необходимости заполнить значения (БД, почта, OAuth)
+
+```bash
+python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
+```
+
+## База данных
+По умолчанию используется SQLite (`DB_ENGINE=sqlite`).
+
+Для PostgreSQL:
+- поставить `DB_ENGINE=postgres`
+- заполнить `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` в `.env`
+- выполнить `python manage.py migrate`
+
+## OAuth (опционально)
+Google/Yandex вход требует ручной настройки клиентских ключей и callback URL.
+Без них проект всё равно запускается и проверяется локально.
+
+## Важно по секретам
+- Реальные ключи и пароли в репозиторий не коммитятся.
+- Локальные файлы `.env`, логи, кэш, дампы БД и `__pycache__` исключены через `.gitignore`.
+
