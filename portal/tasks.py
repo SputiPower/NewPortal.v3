@@ -11,6 +11,28 @@ from datetime import timedelta
 from .models import Post
 
 
+BLOCKED_EMAIL_DOMAINS = {
+    'example.com',
+    'example.org',
+    'example.net',
+    'test.com',
+    'invalid',
+    'localhost',
+}
+
+
+def _is_allowed_recipient_email(email):
+    """Skip placeholder addresses used for fixtures/tests (example.com etc.)."""
+    if not email or '@' not in email:
+        return False
+    domain = email.rsplit('@', 1)[-1].strip().lower()
+    if not domain:
+        return False
+    if domain in BLOCKED_EMAIL_DOMAINS or domain.endswith('.example'):
+        return False
+    return True
+
+
 @shared_task
 def send_notification_to_subscribers(post_id, category_ids=None):
     """
@@ -34,8 +56,26 @@ def send_notification_to_subscribers(post_id, category_ids=None):
 
         # Отправляем письма каждому подписчику
         for user in subscribers:
-            if user.email:
-                send_post_notification_email.delay(post_id, user.id)
+            if _is_allowed_recipient_email(user.email):
+                try:
+                    send_post_notification_email.apply_async(
+                        args=(post_id, user.id),
+                        retry=False,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Celery broker unavailable, fallback to sync send_post_notification_email "
+                        "for post_id=%s user_id=%s",
+                        post_id,
+                        user.id,
+                    )
+                    send_post_notification_email(post_id, user.id)
+            elif user.email:
+                logger.info(
+                    "Skipped notification email for user_id=%s due to blocked/placeholder domain: %s",
+                    user.id,
+                    user.email,
+                )
 
     except Exception as e:
         logger.exception('Error in send_notification_to_subscribers for post_id=%s: %s', post_id, e)
@@ -54,6 +94,14 @@ def send_post_notification_email(post_id, user_id):
     try:
         post = Post.objects.get(pk=post_id)
         user = User.objects.get(pk=user_id)
+
+        if not _is_allowed_recipient_email(user.email):
+            logger.info(
+                'Skipped send_post_notification_email for user_id=%s due to blocked/placeholder email: %s',
+                user_id,
+                user.email,
+            )
+            return
 
         # Генерируем HTML из шаблона
         html_content = render_to_string(
@@ -98,8 +146,24 @@ def send_weekly_digest():
         one_week_ago = timezone.now() - timedelta(days=7)
 
         for user in users:
-            if user.email:
-                send_digest_email.delay(user.id, one_week_ago.isoformat())
+            if _is_allowed_recipient_email(user.email):
+                try:
+                    send_digest_email.apply_async(
+                        args=(user.id, one_week_ago.isoformat()),
+                        retry=False,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Celery broker unavailable, fallback to sync send_digest_email for user_id=%s",
+                        user.id,
+                    )
+                    send_digest_email(user.id, one_week_ago.isoformat())
+            elif user.email:
+                logger.info(
+                    "Skipped digest email for user_id=%s due to blocked/placeholder domain: %s",
+                    user.id,
+                    user.email,
+                )
     except Exception as e:
         logger.exception('Error in send_weekly_digest: %s', e)
         with open('celery_tasks_error.log', 'a', encoding='utf-8') as f:
@@ -117,6 +181,14 @@ def send_digest_email(user_id, one_week_ago_iso):
     try:
         user = User.objects.get(pk=user_id)
         one_week_ago = timezone.datetime.fromisoformat(one_week_ago_iso)
+
+        if not _is_allowed_recipient_email(user.email):
+            logger.info(
+                'Skipped send_digest_email for user_id=%s due to blocked/placeholder email: %s',
+                user_id,
+                user.email,
+            )
+            return
 
         # Получаем категории, на которые подписан пользователь
         subscribed_categories = user.subscribed_categories.all()

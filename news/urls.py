@@ -18,9 +18,22 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
+from django.views.generic import TemplateView
+from rest_framework.schemas import get_schema_view
+from rest_framework.renderers import JSONOpenAPIRenderer
+
+schema_view = get_schema_view(
+    title='NewsPortal API',
+    description='REST API schema for news and articles',
+    version='1.0.0',
+    renderer_classes=[JSONOpenAPIRenderer],
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('openapi', schema_view, name='openapi-schema'),
+    path('swagger-ui/', TemplateView.as_view(template_name='swagger-ui.html'), name='swagger-ui'),
+    path('i18n/', include('django.conf.urls.i18n')),
     path('pages/', include('django.contrib.flatpages.urls')),
     path('products/', include('simpleapp.urls')),
     path('', include('portal.urls')),

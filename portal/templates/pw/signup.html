@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Perfect World - Регистрация{% endblock %}
+{% block body_class %}f66-body{% endblock %}
+
+{% block content %}
+<div class="f66-shell">
+  <section class="f66-section">
+    <div class="f66-container" style="max-width: 640px;">
+      <section class="profile-card glass-elevated reveal-on-scroll">
+        <div class="form-head">
+          <h2>Регистрация в Perfect World</h2>
+          <p class="page-subtitle">После регистрации на почту придет код подтверждения.</p>
+        </div>
+        <form method="post" class="post-form">
+          {% csrf_token %}
+          {% for field in form %}
+          <div class="form-field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}<span class="form-error">{{ field.errors.0 }}</span>{% endif %}
+          </div>
+          {% endfor %}
+          <div class="form-actions">
+            <button type="submit" class="f66-btn f66-btn-primary">Зарегистрироваться</button>
+            <a href="{% url 'pw_login' %}" class="f66-btn f66-btn-ghost">Уже есть аккаунт</a>
+          </div>
+        </form>
+      </section>
+    </div>
+  </section>
+</div>
+{% endblock %}

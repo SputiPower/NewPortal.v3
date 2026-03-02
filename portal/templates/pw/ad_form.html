@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Perfect World - Объявление{% endblock %}
+{% block body_class %}f66-body{% endblock %}
+
+{% block content %}
+<div class="f66-shell">
+  <section class="f66-section">
+    <div class="f66-container" style="max-width: 920px;">
+      <section class="profile-card glass-elevated reveal-on-scroll">
+        <div class="form-head">
+          <h2>{% if object %}Редактирование объявления{% else %}Новое объявление{% endif %}</h2>
+          <p class="page-subtitle">Используйте редактор, чтобы добавить форматирование, ссылки, изображения и видео.</p>
+        </div>
+        <form method="post" class="post-form">
+          {% csrf_token %}
+          {% for field in form %}
+          <div class="form-field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<small class="page-subtitle">{{ field.help_text }}</small>{% endif %}
+            {% if field.errors %}<span class="form-error">{{ field.errors.0 }}</span>{% endif %}
+          </div>
+          {% endfor %}
+          <div class="form-actions">
+            <button class="f66-btn f66-btn-primary" type="submit">{% if object %}Сохранить{% else %}Опубликовать{% endif %}</button>
+            <a href="{% url 'pw_ad_list' %}" class="f66-btn f66-btn-ghost">Отмена</a>
+          </div>
+        </form>
+      </section>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ block.super }}
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+  tinymce.init({
+    selector: '.pw-richtext',
+    menubar: false,
+    height: 420,
+    plugins: 'link image media lists table code',
+    toolbar: 'undo redo | blocks | bold italic underline | bullist numlist | link image media | table | removeformat | code',
+    branding: false
+  });
+</script>
+{% endblock %}

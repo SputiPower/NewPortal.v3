@@ -15,6 +15,10 @@ logs/
 cache_files/
 *.log
 celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal
+*.sqlite3-shm
+*.sqlite3-wal
 
 # OS / tooling
 .DS_Store

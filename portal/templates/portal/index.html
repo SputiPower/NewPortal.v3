@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}NewsSputi | Глобальные новости{% endblock %}
+{% block title %}{% trans "NewsSputi | Глобальные новости" %}{% endblock %}
 {% block body_class %}f66-body{% endblock %}
 
 {% block content %}
@@ -10,15 +10,15 @@
     <div class="f66-hero-glow"></div>
     <div class="f66-container f66-hero-grid">
       <div class="f66-hero-left">
-        <p class="f66-kicker reveal-on-scroll">NewsSputi • Технологический стандарт 2066</p>
-        <h1 class="f66-title reveal-on-scroll">Глобальные новости в новом визуальном измерении.</h1>
+        <p class="f66-kicker reveal-on-scroll">{% trans "NewsSputi • Технологический стандарт 2066" %}</p>
+        <h1 class="f66-title reveal-on-scroll">{% trans "Глобальные новости в новом визуальном измерении." %}</h1>
         <p class="f66-subtitle reveal-on-scroll">
-          Чистая композиция, воздух, глубина и кинематографическая подача.
-          Всё важное в одном технологичном пространстве.
+          {% trans "Чистая композиция, воздух, глубина и кинематографическая подача." %}
+          {% trans "Всё важное в одном технологичном пространстве." %}
         </p>
         <div class="f66-actions reveal-on-scroll">
-          <a href="{% url 'news_list' %}" class="f66-btn f66-btn-primary">Открыть новости</a>
-          <a href="{% url 'article_list' %}" class="f66-btn f66-btn-ghost">Читать статьи</a>
+          <a href="{% url 'news_list' %}" class="f66-btn f66-btn-primary">{% trans "Открыть новости" %}</a>
+          <a href="{% url 'article_list' %}" class="f66-btn f66-btn-ghost">{% trans "Читать статьи" %}</a>
         </div>
       </div>
 
@@ -28,18 +28,18 @@
             <div class="weather-city-wrap">
               <span class="weather-pin">◉</span>
               <select class="weather-city-select" data-weather-city-select>
-                <option value="moscow">Москва</option>
-                <option value="saint_petersburg">Санкт-Петербург</option>
-                <option value="new_york">Нью-Йорк</option>
-                <option value="london">Лондон</option>
-                <option value="tokyo">Токио</option>
+                <option value="moscow">{% trans "Москва" %}</option>
+                <option value="saint_petersburg">{% trans "Санкт-Петербург" %}</option>
+                <option value="new_york">{% trans "Нью-Йорк" %}</option>
+                <option value="london">{% trans "Лондон" %}</option>
+                <option value="tokyo">{% trans "Токио" %}</option>
               </select>
             </div>
             <span class="weather-icon" data-weather-icon>⛅</span>
           </div>
           <div class="weather-main">
             <div class="weather-temp" data-weather-temp>--°</div>
-            <p class="weather-status" data-weather-status>Загрузка...</p>
+            <p class="weather-status" data-weather-status>{% trans "Загрузка..." %}</p>
           </div>
           <div class="weather-metrics">
             <span>💨 <b data-weather-wind>--</b> км/ч</span>
@@ -49,7 +49,7 @@
           <div class="weather-hours" data-weather-hours></div>
         </div>
         <div class="weather-forecast">
-          <h3>Прогноз</h3>
+          <h3>{% trans "Прогноз" %}</h3>
           <div class="weather-days" data-weather-days></div>
         </div>
       </aside>
@@ -58,8 +58,8 @@
   <section class="f66-section" id="latest">
     <div class="f66-container">
       <header class="f66-section-head reveal-on-scroll">
-        <p class="f66-kicker">Лента</p>
-        <h2>Последние публикации</h2>
+        <p class="f66-kicker">{% trans "Лента" %}</p>
+        <h2>{% trans "Последние публикации" %}</h2>
       </header>
 
       <div class="f66-news-grid">
@@ -76,7 +76,7 @@
             </a>
             {% else %}
             <a href="{{ post.get_absolute_url }}" class="f66-card-media f66-media-fallback" aria-label="Открыть публикацию">
-              <span>News</span>
+              <span>{% trans "News" %}</span>
             </a>
             {% endif %}
           {% endwith %}
@@ -86,15 +86,15 @@
             <h3><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h3>
             <p>{{ post.text|truncatechars:170 }}</p>
             <div class="f66-card-footer">
-              <a href="{{ post.get_absolute_url }}" class="f66-link">Читать полностью</a>
-              <span class="f66-rating">Рейтинг {{ post.rating }}</span>
+              <a href="{{ post.get_absolute_url }}" class="f66-link">{% trans "Читать полностью" %}</a>
+              <span class="f66-rating">{% trans "Рейтинг" %} {{ post.rating }}</span>
             </div>
           </div>
         </article>
         {% empty %}
         <div class="f66-empty glass-elevated reveal-on-scroll">
-          <h3>Публикаций пока нет</h3>
-          <p>Лента обновится автоматически, как только появятся новые материалы.</p>
+          <h3>{% trans "Публикаций пока нет" %}</h3>
+          <p>{% trans "Лента обновится автоматически, как только появятся новые материалы." %}</p>
         </div>
         {% endfor %}
       </div>
@@ -104,8 +104,8 @@
   <section class="f66-section" id="cybermap">
     <div class="f66-container">
       <header class="f66-section-head reveal-on-scroll">
-        <p class="f66-kicker">Безопасность</p>
-        <h2>Карта киберугроз в реальном времени</h2>
+        <p class="f66-kicker">{% trans "Безопасность" %}</p>
+        <h2>{% trans "Карта киберугроз в реальном времени" %}</h2>
       </header>
 
       <div class="glass-elevated reveal-on-scroll p-3 p-md-4" style="border-radius: 18px;">
@@ -119,18 +119,18 @@
   {% if user.is_authenticated %}
   <section class="f66-section f66-author-zone">
     <div class="f66-container">
-      <div class="f66-author-card glass-elevated reveal-on-scroll">
-        <h2>Панель автора</h2>
-        <p>Создавайте новости и статьи с поддержкой PNG-галерей и премиальным отображением.</p>
+        <div class="f66-author-card glass-elevated reveal-on-scroll">
+        <h2>{% trans "Панель автора" %}</h2>
+        <p>{% trans "Создавайте новости и статьи с поддержкой PNG-галерей и премиальным отображением." %}</p>
         <div class="f66-actions">
           {% if is_not_author %}
             <form action="{% url 'upgrade' %}" method="post" class="d-inline">
               {% csrf_token %}
-              <button type="submit" class="f66-btn f66-btn-primary">Стать автором</button>
+              <button type="submit" class="f66-btn f66-btn-primary">{% trans "Стать автором" %}</button>
             </form>
           {% else %}
-            <a href="{% url 'news_create' %}" class="f66-btn f66-btn-primary">Создать новость</a>
-            <a href="{% url 'article_create' %}" class="f66-btn f66-btn-ghost">Создать статью</a>
+            <a href="{% url 'news_create' %}" class="f66-btn f66-btn-primary">{% trans "Создать новость" %}</a>
+            <a href="{% url 'article_create' %}" class="f66-btn f66-btn-ghost">{% trans "Создать статью" %}</a>
           {% endif %}
         </div>
       </div>

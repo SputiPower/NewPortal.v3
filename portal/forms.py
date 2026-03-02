@@ -1,6 +1,7 @@
 from django import forms
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Post, Category
+from .models import Post, Category, BoardAd, AdResponse
 
 class MultiFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
@@ -117,3 +118,64 @@ class EmailChangeForm(forms.Form):
         if not self.user.check_password(password):
             raise forms.ValidationError('Неверный пароль.')
         return password
+
+
+class PWSignupForm(UserCreationForm):
+    email = forms.EmailField(
+        label='Email',
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'you@example.com'}),
+    )
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = ('username', 'email', 'password1', 'password2')
+
+    def clean_email(self):
+        email = self.cleaned_data['email'].strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError('Этот email уже используется.')
+        return email
+
+
+class EmailCodeVerifyForm(forms.Form):
+    email = forms.EmailField(
+        label='Email',
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'you@example.com'}),
+    )
+    code = forms.CharField(
+        label='Код подтверждения',
+        min_length=6,
+        max_length=6,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '123456'}),
+    )
+
+
+class BoardAdForm(forms.ModelForm):
+    class Meta:
+        model = BoardAd
+        fields = ['title', 'category', 'content']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control form-control-lg',
+                'placeholder': 'Заголовок объявления',
+            }),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control pw-richtext',
+                'rows': 12,
+                'placeholder': 'Опишите запрос/предложение. Можно форматировать текст, добавлять ссылки и медиа.',
+            }),
+        }
+
+
+class AdResponseForm(forms.ModelForm):
+    class Meta:
+        model = AdResponse
+        fields = ['text']
+        widgets = {
+            'text': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 5,
+                'placeholder': 'Напишите отклик на объявление',
+            }),
+        }

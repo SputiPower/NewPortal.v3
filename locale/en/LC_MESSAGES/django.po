@@ -1,0 +1,106 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: NewsPortal\n"
+"POT-Creation-Date: 2026-03-02 18:45+0000\n"
+"PO-Revision-Date: 2026-03-02 18:45+0000\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "NewsPortal - Новости будущего"
+msgstr "NewsPortal - News of the Future"
+
+msgid "NewsPortal - Твой источник последних новостей"
+msgstr "NewsPortal - Your source of the latest news"
+
+msgid "Новости"
+msgstr "News"
+
+msgid "Статьи"
+msgstr "Articles"
+
+msgid "Лента"
+msgstr "Feed"
+
+msgid "Категории"
+msgstr "Categories"
+
+msgid "Профиль"
+msgstr "Profile"
+
+msgid "Войти"
+msgstr "Sign in"
+
+msgid "Выйти"
+msgstr "Sign out"
+
+msgid "Открыть новости"
+msgstr "Open news"
+
+msgid "Читать статьи"
+msgstr "Read articles"
+
+msgid "Последние публикации"
+msgstr "Latest publications"
+
+msgid "Читать полностью"
+msgstr "Read more"
+
+msgid "Рейтинг"
+msgstr "Rating"
+
+msgid "Публикаций пока нет"
+msgstr "No publications yet"
+
+msgid "Лента обновится автоматически, как только появятся новые материалы."
+msgstr "The feed will update automatically as soon as new materials appear."
+
+msgid "Безопасность"
+msgstr "Security"
+
+msgid "Карта киберугроз в реальном времени"
+msgstr "Real-time cyber threat map"
+
+msgid "Панель автора"
+msgstr "Author dashboard"
+
+msgid "Создать новость"
+msgstr "Create news"
+
+msgid "Создать статью"
+msgstr "Create article"
+
+msgid "Стать автором"
+msgstr "Become an author"
+
+msgid "Профиль обновлён."
+msgstr "Profile updated."
+
+msgid "Email успешно изменён."
+msgstr "Email updated successfully."
+
+msgid "Пароль успешно изменён."
+msgstr "Password changed successfully."
+
+msgid "Вы уже опубликовали 3 новости за последние 24 часа"
+msgstr "You have already published 3 news posts in the last 24 hours"
+
+msgid "Пост"
+msgstr "Post"
+
+msgid "Посты"
+msgstr "Posts"
+
+msgid "Категория"
+msgstr "Category"
+
+msgid "Категории"
+msgstr "Categories"
+
+msgid "Комментарий"
+msgstr "Comment"
+
+msgid "Комментарии"
+msgstr "Comments"

@@ -1,14 +1,15 @@
-{% load static socialaccount cache %}
+{% load static socialaccount cache i18n tz %}
+{% get_current_language as LANGUAGE_CODE %}
 
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token }}">
-    <meta name="description" content="NewsPortal - Твой источник последних новостей">
+    <meta name="description" content="{% trans 'NewsPortal - Твой источник последних новостей' %}">
     <meta name="theme-color" content="#00d9ff">
-    <title>{% block title %}NewsPortal - Новости будущего{% endblock %}</title>
+    <title>{% block title %}{% trans 'NewsPortal - Новости будущего' %}{% endblock %}</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -22,7 +23,7 @@
     <link rel="icon" href="{% static 'assets/favicon.ico' %}" type="image/x-icon">
     {% block extra_head %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}{% if is_night_theme %} night-mode{% endif %}">
 
 <!-- Верхняя панель: логотип и авторизация (Premium Design) -->
 <nav class="navbar navbar-expand-lg navbar-custom sticky-top">
@@ -43,11 +44,13 @@
                         {% url 'news_list' as news_url %}
                         {% url 'article_list' as articles_url %}
                         {% url 'smart_feed' as feed_url %}
-                        <li class="nav-item"><a class="nav-link {% if request.path == news_url %}active{% endif %}" href="{{ news_url }}">Новости</a></li>
-                        <li class="nav-item"><a class="nav-link {% if request.path == articles_url %}active{% endif %}" href="{{ articles_url }}">Статьи</a></li>
-                        <li class="nav-item"><a class="nav-link {% if request.path == feed_url %}active{% endif %}" href="{{ feed_url }}">Лента</a></li>
+                        {% url 'pw_ad_list' as pw_board_url %}
+                        <li class="nav-item"><a class="nav-link {% if request.path == news_url %}active{% endif %}" href="{{ news_url }}">{% trans "Новости" %}</a></li>
+                        <li class="nav-item"><a class="nav-link {% if request.path == articles_url %}active{% endif %}" href="{{ articles_url }}">{% trans "Статьи" %}</a></li>
+                        <li class="nav-item"><a class="nav-link {% if request.path == feed_url %}active{% endif %}" href="{{ feed_url }}">{% trans "Лента" %}</a></li>
+                        <li class="nav-item"><a class="nav-link {% if '/pw/' in request.path %}active{% endif %}" href="{{ pw_board_url }}">Perfect World</a></li>
 
-                        {% cache 300 nav_primary_categories request.path %}
+                        {% cache 300 nav_primary_categories request.path LANGUAGE_CODE %}
                             {% for category in categories %}
                                 {% with category.name|lower as cname %}
                                     {% if cname == 'спорт' or cname == 'политика' or cname == 'образование' or cname == 'it' %}
@@ -58,11 +61,11 @@
                             {% endfor %}
                         {% endcache %}
 
-                        {% cache 300 nav_dropdown_categories %}
+                        {% cache 300 nav_dropdown_categories LANGUAGE_CODE %}
                             {% if categories %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="categoryMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    Category
+                                    {% trans "Категории" %}
                                 </a>
                                 <ul class="dropdown-menu" aria-labelledby="categoryMenu">
                                     {% for category in categories %}
@@ -77,21 +80,57 @@
                 </div>
 
                 <div class="nav-right d-flex align-items-center gap-2">
+                    <a href="{% url 'swagger-ui' %}" class="nav-link profile-link" target="_blank" rel="noopener">API</a>
+                    <form action="{% url 'set_language' %}" method="post" class="nav-tool-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <select name="language" class="nav-select nav-select-sm" onchange="this.form.submit()">
+                            {% get_available_languages as LANGUAGES %}
+                            {% get_language_info_list for LANGUAGES as languages %}
+                            {% for language in languages %}
+                                <option value="{{ language.code }}" {% if language.code == LANGUAGE_CODE %}selected{% endif %}>
+                                    {{ language.name_local|capfirst }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+
+                    <form action="{% url 'set_timezone' %}" method="post" class="nav-tool-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <select name="timezone" class="nav-select" onchange="this.form.submit()">
+                            {% for tz_name in timezone_choices %}
+                                <option value="{{ tz_name }}" {% if tz_name == selected_timezone %}selected{% endif %}>{{ tz_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+
                     {% if user.is_authenticated %}
-                        <a href="{% url 'profile' %}" class="nav-link profile-link">Профиль</a>
+                        <a href="{% url 'profile' %}" class="nav-link profile-link">{% trans "Профиль" %}</a>
                         <form method="post" action="{% url 'account_logout' %}" class="d-inline m-0 p-0">
                             {% csrf_token %}
-                            <button type="submit" class="btn btn-sm btn-auth">Выйти</button>
+                            <button type="submit" class="btn btn-sm btn-auth">{% trans "Выйти" %}</button>
                         </form>
                     {% else %}
-                        <a href="{% url 'account_login' %}" class="nav-link profile-link">Профиль</a>
-                        <a href="{% url 'account_login' %}" class="btn btn-sm btn-auth">Войти</a>
+                        <a href="{% url 'account_login' %}" class="nav-link profile-link">{% trans "Профиль" %}</a>
+                        <a href="{% url 'account_login' %}" class="btn btn-sm btn-auth">{% trans "Войти" %}</a>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </nav>
+
+{% if '/pw/' in request.path %}
+<section class="pw-heading-wrap">
+    <div class="container">
+        <div class="pw-heading-card">
+            <h1>Perfect World</h1>
+            <p>Фанатская доска объявлений и откликов</p>
+        </div>
+    </div>
+</section>
+{% endif %}
 
 <!-- Контент страницы -->
 {% block page_wrapper %}<div class="page-layer">{% endblock %}
