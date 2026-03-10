@@ -1,19 +1,20 @@
 {% extends "base.html" %}
 
 {% block title %}NewsPortal | Home{% endblock %}
-{% block body_class %}premium-page{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<div class="content-shell">
-  <header class="page-hero reveal">
-    <h1 class="page-title">NewsPortal</h1>
-    <p class="page-subtitle">Премиальная платформа новостей и статей.</p>
-  </header>
-
-  <section class="panel glass-surface reveal" style="text-align:center;">
-    <div class="hero-actions">
-      <a href="{% url 'news_list' %}" class="btn-premium btn-primary-premium">Новости</a>
-      <a href="{% url 'article_list' %}" class="btn-premium btn-ghost-premium">Статьи</a>
+<div class="f66-shell">
+  <section class="f66-hero f66-hero-compact">
+    <div class="f66-hero-glow"></div>
+    <div class="f66-container home-hero-shell">
+      <p class="f66-kicker reveal-on-scroll">NewsPortal • Home</p>
+      <h1 class="f66-title reveal-on-scroll">Премиальная платформа новостей и статей.</h1>
+      <p class="f66-subtitle reveal-on-scroll">Быстрый вход в новости и статьи без лишнего шума, в общей визуальной системе сайта.</p>
+      <div class="f66-actions reveal-on-scroll home-hero-actions">
+        <a href="{% url 'news_list' %}" class="f66-btn f66-btn-primary">Новости</a>
+        <a href="{% url 'article_list' %}" class="f66-btn f66-btn-ghost">Статьи</a>
+      </div>
     </div>
   </section>
 </div>

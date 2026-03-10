@@ -5,20 +5,20 @@
 
 {% block content %}
 <div class="f66-shell">
-  <section class="f66-section" style="padding-top:8rem;">
-    <div class="f66-container" style="max-width:780px;">
-      <section class="profile-card glass-elevated reveal-on-scroll" style="text-align:center;">
+  <section class="f66-section f66-section-offset-top">
+    <div class="f66-container-delete">
+      <section class="profile-card glass-elevated reveal-on-scroll profile-card-centered">
         <h1 class="detail-title">Удалить пост?</h1>
         <p class="page-subtitle">Это действие необратимо.</p>
 
-        <div class="detail-body" style="text-align:left; margin-top:1rem;">
+        <div class="detail-body detail-body-left detail-body-spaced">
           <strong>{{ object.title }}</strong>
           <p>{{ object.text|truncatechars:180 }}</p>
         </div>
 
         <div class="warning-box">После удаления пост и связанные комментарии будут удалены окончательно.</div>
 
-        <div class="form-actions" style="justify-content:center;">
+        <div class="form-actions form-actions-center">
           <form method="post">
             {% csrf_token %}
             <button type="submit" class="f66-btn f66-btn-primary">Да, удалить</button>

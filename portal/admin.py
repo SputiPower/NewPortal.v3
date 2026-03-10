@@ -29,7 +29,7 @@ def reset_post_rating(modeladmin, request, queryset):
 
 @admin.register(Post)
 class PostAdmin(TranslationAdmin, admin.ModelAdmin):
-    list_display = ('id', 'title', 'type', 'author', 'created_at', 'rating')
+    list_display = ('id', 'title', 'type', 'author', 'created_at', 'rating', 'preview_video')
     list_filter = ('type', 'created_at', 'categories')
     search_fields = ('title', 'text', 'author__user__username', 'categories__name')
     date_hierarchy = 'created_at'

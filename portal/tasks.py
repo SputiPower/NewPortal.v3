@@ -1,6 +1,5 @@
 from celery import shared_task
 import logging
-import traceback
 from django.contrib.auth.models import User
 from django.conf import settings
 from django.utils import timezone
@@ -19,6 +18,13 @@ BLOCKED_EMAIL_DOMAINS = {
     'invalid',
     'localhost',
 }
+
+
+def _public_url(path):
+    base_url = getattr(settings, 'SITE_BASE_URL', 'http://127.0.0.1:8000').rstrip('/')
+    if not path:
+        return base_url
+    return f'{base_url}{path}'
 
 
 def _is_allowed_recipient_email(email):
@@ -79,10 +85,6 @@ def send_notification_to_subscribers(post_id, category_ids=None):
 
     except Exception as e:
         logger.exception('Error in send_notification_to_subscribers for post_id=%s: %s', post_id, e)
-        with open('celery_tasks_error.log', 'a', encoding='utf-8') as f:
-            f.write('send_notification_to_subscribers ERROR for post_id=%s\n' % post_id)
-            f.write(traceback.format_exc())
-            f.write('\n')
 
 
 @shared_task
@@ -109,7 +111,7 @@ def send_post_notification_email(post_id, user_id):
             {
                 'user': user,
                 'post': post,
-                'link': f"http://127.0.0.1:8000{post.get_absolute_url()}" if hasattr(post, "get_absolute_url") else "#",
+                'link': _public_url(post.get_absolute_url()) if hasattr(post, "get_absolute_url") else "#",
             }
         )
 
@@ -125,10 +127,6 @@ def send_post_notification_email(post_id, user_id):
 
     except Exception as e:
         logger.exception('Error in send_post_notification_email post_id=%s user_id=%s: %s', post_id, user_id, e)
-        with open('celery_tasks_error.log', 'a', encoding='utf-8') as f:
-            f.write('send_post_notification_email ERROR for post_id=%s user_id=%s\n' % (post_id, user_id))
-            f.write(traceback.format_exc())
-            f.write('\n')
 
 
 @shared_task
@@ -166,10 +164,6 @@ def send_weekly_digest():
                 )
     except Exception as e:
         logger.exception('Error in send_weekly_digest: %s', e)
-        with open('celery_tasks_error.log', 'a', encoding='utf-8') as f:
-            f.write('send_weekly_digest ERROR\n')
-            f.write(traceback.format_exc())
-            f.write('\n')
 
 
 @shared_task
@@ -197,16 +191,17 @@ def send_digest_email(user_id, one_week_ago_iso):
         posts = Post.objects.filter(
             categories__in=subscribed_categories,
             created_at__gte=one_week_ago
-        ).distinct().order_by('-created_at')
+        ).prefetch_related('categories').distinct().order_by('-created_at')
 
         # Если есть новые посты, отправляем дайджест
         if posts.exists():
             html_content = render_to_string(
-                'news/email/weekly_digest.html',
+                'portal/email/weekly_digest.html',
                 {
                     'user': user,
                     'posts': posts,
                     'categories': subscribed_categories,
+                    'site_base_url': getattr(settings, 'SITE_BASE_URL', 'http://127.0.0.1:8000').rstrip('/'),
                 }
             )
 
@@ -220,7 +215,3 @@ def send_digest_email(user_id, one_week_ago_iso):
             msg.send()
     except Exception as e:
         logger.exception('Error in send_digest_email user_id=%s: %s', user_id, e)
-        with open('celery_tasks_error.log', 'a', encoding='utf-8') as f:
-            f.write('send_digest_email ERROR for user_id=%s\n' % user_id)
-            f.write(traceback.format_exc())
-            f.write('\n')

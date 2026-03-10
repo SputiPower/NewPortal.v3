@@ -6,7 +6,7 @@
 
 {% block content %}
 <div class="f66-shell">
-  <section class="f66-hero" id="top">
+  <section class="f66-hero f66-hero-compact" id="top">
     <div class="f66-hero-glow"></div>
     <div class="f66-container">
       <p class="f66-kicker reveal-on-scroll">NewsSputi • Deep Articles</p>
@@ -42,11 +42,11 @@
           {% with article.media_files.first as media_preview %}
             {% if article.image %}
             <a href="{{ article.get_absolute_url }}" class="f66-card-media">
-              <img src="{{ article.image.url }}" alt="{{ article.title|censor }}">
+              <img src="{{ article.image.url }}" alt="{{ article.title|censor }}" loading="lazy" decoding="async">
             </a>
             {% elif media_preview %}
             <a href="{{ article.get_absolute_url }}" class="f66-card-media">
-              <img src="{{ media_preview.image.url }}" alt="{{ article.title|censor }}">
+              <img src="{{ media_preview.image.url }}" alt="{{ article.title|censor }}" loading="lazy" decoding="async">
             </a>
             {% else %}
             <a href="{{ article.get_absolute_url }}" class="f66-card-media f66-media-fallback" aria-label="Открыть статью">

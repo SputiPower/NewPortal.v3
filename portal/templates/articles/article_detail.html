@@ -10,9 +10,9 @@
     <div class="f66-detail-overlay"></div>
     {% with media_preview=article.media_files.first %}
       {% if article.image %}
-      <img class="f66-detail-hero-image" src="{{ article.image.url }}" alt="{{ article.title }}">
+      <img class="f66-detail-hero-image" src="{{ article.image.url }}" alt="{{ article.title }}" fetchpriority="high">
       {% elif media_preview %}
-      <img class="f66-detail-hero-image" src="{{ media_preview.image.url }}" alt="{{ article.title }}">
+      <img class="f66-detail-hero-image" src="{{ media_preview.image.url }}" alt="{{ article.title }}" fetchpriority="high">
       {% else %}
       <div class="f66-detail-hero-image f66-media-fallback"><span>Article</span></div>
       {% endif %}
@@ -30,22 +30,27 @@
     <section class="f66-inline-gallery reveal-on-scroll" aria-label="Галерея изображений">
       {% for media in article.media_files.all %}
       <figure class="f66-inline-media glass-elevated">
-        <img src="{{ media.image.url }}" alt="PNG {{ forloop.counter }}">
+        <img src="{{ media.image.url }}" alt="PNG {{ forloop.counter }}" loading="lazy" decoding="async">
       </figure>
       {% endfor %}
     </section>
     {% endif %}
 
-    <section class="f66-detail-content glass-elevated reveal-on-scroll">
-      <div class="f66-typography">{{ article.text|linebreaks|censor }}</div>
+    <section class="f66-detail-content story-surface glass-elevated reveal-on-scroll">
+      <div class="f66-typography story-body">{{ article.text|render_post_text|censor|linebreaks }}</div>
     </section>
 
     {% if user.is_authenticated %}
     <section class="detail-controls glass-elevated reveal-on-scroll">
       <div class="reaction-row" data-post-id="{{ article.id }}">
-        <button class="reaction-btn {% if article.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like">👍 <span data-like-count>{{ article.likes_count|default:0 }}</span></button>
-        <button class="reaction-btn {% if article.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike">👎 <span data-dislike-count>{{ article.dislikes_count|default:0 }}</span></button>
+        <button type="button" class="reaction-btn {% if article.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like" aria-pressed="{% if article.user_reaction == 'like' %}true{% else %}false{% endif %}" aria-label="Лайк">👍 <span data-like-count>{{ article.likes_count|default:0 }}</span></button>
+        <button type="button" class="reaction-btn {% if article.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike" aria-pressed="{% if article.user_reaction == 'dislike' %}true{% else %}false{% endif %}" aria-label="Дизлайк">👎 <span data-dislike-count>{{ article.dislikes_count|default:0 }}</span></button>
       </div>
+      {% if user.is_staff or user.is_superuser or user == article.author.user %}
+      <div class="author-subscribe-controls">
+        <a href="{% url 'post_delete' article.id %}" class="f66-btn f66-btn-ghost">Удалить</a>
+      </div>
+      {% endif %}
       {% if user != article.author.user %}
       <div class="author-subscribe-controls">
         {% if is_author_subscribed %}

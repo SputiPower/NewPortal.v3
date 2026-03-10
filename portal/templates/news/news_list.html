@@ -7,7 +7,7 @@
 
 {% block content %}
 <div class="f66-shell">
-  <section class="f66-hero" id="top">
+  <section class="f66-hero f66-hero-compact" id="top">
     <div class="f66-hero-glow"></div>
     <div class="f66-container">
       <p class="f66-kicker reveal-on-scroll">NewsSputi • Live Feed</p>
@@ -16,40 +16,6 @@
       <div class="f66-actions reveal-on-scroll">
         <a href="#feed" class="f66-btn f66-btn-primary">Перейти к ленте</a>
         <a href="#categories" class="f66-btn f66-btn-ghost">Категории</a>
-      </div>
-    </div>
-  </section>
-
-  <section class="f66-section" id="categories">
-    <div class="f66-container">
-      <header class="f66-section-head reveal-on-scroll">
-        <p class="f66-kicker">Категории</p>
-        <h2>Настройте информационный поток</h2>
-      </header>
-
-      <div class="categories-grid-premium">
-        {% for category in categories %}
-        <div class="category-item glass-elevated reveal-on-scroll">
-          <a href="{% url 'category_posts' category.id %}" class="category-chip" style="--category-color: {{ category.color|default:'#8f8f94' }};">
-            <span>{{ category.name }}</span>
-          </a>
-          {% if user.is_authenticated %}
-            {% if category.id in subscriber_category_ids %}
-              <form action="{% url 'unsubscribe_category' category.id %}" method="post" class="category-action-form">
-                {% csrf_token %}
-                <button type="submit" class="category-action-btn is-on" aria-label="Отписаться">Подписка</button>
-              </form>
-            {% else %}
-              <form action="{% url 'subscribe_category' category.id %}" method="post" class="category-action-form">
-                {% csrf_token %}
-                <button type="submit" class="category-action-btn" aria-label="Подписаться">Подписаться</button>
-              </form>
-            {% endif %}
-          {% else %}
-          <a href="{% url 'account_login' %}" class="category-action-btn login-link">Войти</a>
-          {% endif %}
-        </div>
-        {% endfor %}
       </div>
     </div>
   </section>
@@ -72,13 +38,17 @@
         {% for item in news %}
         <article class="f66-news-card glass-elevated reveal-on-scroll tilt-card" data-tilt-card>
           {% with media_preview=item.media_files.first %}
-            {% if item.image %}
+            {% if item.preview_video %}
             <a href="{% url 'news_detail' item.id %}" class="f66-card-media">
-              <img src="{{ item.image.url }}" alt="{{ item.title|censor }}">
+              <video src="{{ item.preview_video.url }}" autoplay muted loop playsinline preload="metadata" aria-label="{{ item.title|censor }}"></video>
+            </a>
+            {% elif item.image %}
+            <a href="{% url 'news_detail' item.id %}" class="f66-card-media">
+              <img src="{{ item.image.url }}" alt="{{ item.title|censor }}" loading="lazy" decoding="async">
             </a>
             {% elif media_preview %}
             <a href="{% url 'news_detail' item.id %}" class="f66-card-media">
-              <img src="{{ media_preview.image.url }}" alt="{{ item.title|censor }}">
+              <img src="{{ media_preview.image.url }}" alt="{{ item.title|censor }}" loading="lazy" decoding="async">
             </a>
             {% else %}
             <a href="{% url 'news_detail' item.id %}" class="f66-card-media f66-media-fallback" aria-label="Открыть новость">
@@ -95,14 +65,18 @@
               <a href="{% url 'news_detail' item.id %}" class="f66-link">Читать</a>
               <span class="f66-rating">Рейтинг {{ item.rating }}</span>
             </div>
+            {% if user.is_authenticated %}
             <div class="reaction-row" data-post-id="{{ item.id }}">
-              <button class="reaction-btn {% if item.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like" aria-label="Лайк">
+              <button type="button" class="reaction-btn {% if item.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like" aria-pressed="{% if item.user_reaction == 'like' %}true{% else %}false{% endif %}" aria-label="Лайк">
                 👍 <span data-like-count>{{ item.likes_count|default:0 }}</span>
               </button>
-              <button class="reaction-btn {% if item.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike" aria-label="Дизлайк">
+              <button type="button" class="reaction-btn {% if item.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike" aria-pressed="{% if item.user_reaction == 'dislike' %}true{% else %}false{% endif %}" aria-label="Дизлайк">
                 👎 <span data-dislike-count>{{ item.dislikes_count|default:0 }}</span>
               </button>
             </div>
+            {% else %}
+            <a href="{% url 'account_login' %}?next={{ request.get_full_path|urlencode }}" class="f66-link">Войти, чтобы оценить</a>
+            {% endif %}
           </div>
         </article>
         {% empty %}

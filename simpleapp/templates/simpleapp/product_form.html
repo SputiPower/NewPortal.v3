@@ -1,71 +1,47 @@
-{% load static %}
-{% load form_tags %}
+{% extends 'base.html' %}
 
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Добавить товар</title>
+{% block title %}{% if object %}Редактировать товар{% else %}Создать товар{% endif %}{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
-    <!-- Подключаем Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Свой CSS -->
-    <style>
-        body {
-            background-color: #f5f5f5;
-        }
-        .card {
-            border-radius: 1rem;
-            box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
-        }
-        .btn-primary {
-            background-color: #4e73df;
-            border: none;
-        }
-        .btn-primary:hover {
-            background-color: #2e59d9;
-        }
-    </style>
-</head>
-<body>
-
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-
-            <!-- Карточка с формой -->
-            <div class="card p-4">
-                <div class="card-body">
-                    <h2 class="card-title text-center mb-4">Добавить новый товар</h2>
-
-                    <form method="post" class="needs-validation" novalidate>
-                        {% csrf_token %}
-                        {% for field in form %}
-                            <div class="mb-3">
-                                <label class="form-label">{{ field.label }}</label>
-                                {{ field|add_class:"form-control" }}
-                                {% if field.errors %}
-                                    <div class="text-danger small">{{ field.errors }}</div>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">Сохранить</button>
-                        </div>
-                    </form>
-
-                </div>
-            </div>
-
+{% block content %}
+<div class="f66-shell">
+  <section class="f66-section f66-section-offset-top">
+    <div class="f66-container-form">
+      <section class="profile-card glass-elevated reveal-on-scroll">
+        <div class="form-head-split">
+          <div>
+            <h2>{% if object %}Редактировать товар{% else %}Создать товар{% endif %}</h2>
+            <p class="page-subtitle">Управление товарами без выхода из общей premium-системы сайта.</p>
+          </div>
+          <div class="form-actions form-actions-reset">
+            <a href="{% url 'product_list' %}" class="f66-btn f66-btn-ghost">К каталогу</a>
+          </div>
         </div>
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger auth-alert">
+          {% for error in form.non_field_errors %}
+          <p class="mb-0">{{ error }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" class="post-form">
+          {% csrf_token %}
+          {% for field in form %}
+          <div class="form-field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<small class="page-subtitle">{{ field.help_text }}</small>{% endif %}
+            {% if field.errors %}<span class="form-error">{{ field.errors.0 }}</span>{% endif %}
+          </div>
+          {% endfor %}
+          <div class="form-actions">
+            <button type="submit" class="f66-btn f66-btn-primary">{% if object %}Сохранить изменения{% else %}Создать товар{% endif %}</button>
+          </div>
+        </form>
+      </section>
     </div>
+  </section>
 </div>
-
-<!-- Bootstrap JS (для интерактивных элементов) -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-</body>
-</html>
+{% endblock %}

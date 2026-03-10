@@ -3,14 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Добро пожаловать</title>
+    <title>Подтверждение регистрации</title>
 </head>
-<body>
+<body style="margin:0;padding:24px;background:#f4f7ff;font-family:Arial,sans-serif;color:#1f2a44;">
     {% load account %}
-    <h1>Спасибо за регистрацию, {{ user.email }}!</h1>
-    <p>Для того чтобы активировать аккаунт, перейдите по ссылке ниже:</p>
-    <p><a href="{{ activate_url }}">Активировать аккаунт</a></p>
-    <p>Если ссылка не работает, скопируйте её в адресную строку браузера.</p>
-    <p>С уважением,<br>команда News Portal</p>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;border-collapse:collapse;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 18px 48px rgba(15,32,87,0.10);">
+                    <tr>
+                        <td style="padding:32px 32px 20px;background:linear-gradient(135deg,#f7fbff 0%,#edf4ff 100%);border-bottom:1px solid rgba(21,33,74,0.08);">
+                            <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:#61708d;font-weight:700;">NewsSputi</div>
+                            <h1 style="margin:12px 0 0;font-size:28px;line-height:1.1;color:#101828;">Подтвердите регистрацию</h1>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:28px 32px 32px;">
+                            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:#31415f;">Спасибо за регистрацию, {{ user.email }}.</p>
+                            <p style="margin:0 0 20px;font-size:16px;line-height:1.7;color:#31415f;">Чтобы активировать аккаунт, перейдите по ссылке ниже.</p>
+                            <p style="margin:0 0 24px;">
+                                <a href="{{ activate_url }}" style="display:inline-block;padding:14px 22px;border-radius:999px;background:linear-gradient(135deg,#1d7dff,#00d4ff);color:#ffffff;text-decoration:none;font-weight:700;">Активировать аккаунт</a>
+                            </p>
+                            <p style="margin:0 0 12px;font-size:14px;line-height:1.7;color:#61708d;">Если кнопка не открывается, скопируйте ссылку в адресную строку браузера:</p>
+                            <p style="margin:0;padding:14px 16px;border-radius:14px;background:#f7f9fd;border:1px solid rgba(21,33,74,0.08);word-break:break-all;font-size:13px;line-height:1.6;color:#31415f;">{{ activate_url }}</p>
+                            <p style="margin:24px 0 0;font-size:14px;line-height:1.7;color:#61708d;">С уважением,<br>команда News Portal</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

@@ -5,15 +5,24 @@
 
 {% block content %}
 <div class="f66-shell">
+  <section class="f66-hero f66-hero-compact">
+    <div class="f66-hero-glow"></div>
+    <div class="f66-container">
+      <p class="f66-kicker reveal-on-scroll">Perfect World • Board</p>
+      <h1 class="f66-title reveal-on-scroll">Доска объявлений Perfect World</h1>
+      <p class="f66-subtitle reveal-on-scroll">Танки, хилы, дд, крафт и внутриигровые активности в единой аккуратной ленте без визуального шума.</p>
+    </div>
+  </section>
+
   <section class="f66-section">
-    <div class="f66-container" style="max-width: 1040px;">
-      <section class="profile-card glass-elevated reveal-on-scroll">
-        <div class="form-head" style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+    <div class="f66-container f66-container-narrow">
+      <section class="profile-card glass-elevated reveal-on-scroll pw-board-shell">
+        <div class="form-head form-head-split">
           <div>
             <h2>Доска объявлений</h2>
             <p class="page-subtitle">Танки, хилы, дд, крафт и все активности Perfect World.</p>
           </div>
-          <div class="form-actions" style="margin:0;">
+          <div class="form-actions form-actions-reset">
             {% if user.is_authenticated %}
             <a href="{% url 'pw_ad_create' %}" class="f66-btn f66-btn-primary">Создать объявление</a>
             <a href="{% url 'pw_my_responses' %}" class="f66-btn f66-btn-ghost">Мои отклики</a>
@@ -24,7 +33,7 @@
           </div>
         </div>
 
-        <form method="get" class="post-form" style="margin-bottom:1rem;">
+        <form method="get" class="post-form pw-filter-form">
           <div class="form-field">
             <label for="id_q">Поиск</label>
             <input id="id_q" class="form-control" type="text" name="q" value="{{ q }}" placeholder="Заголовок или текст">
@@ -45,12 +54,12 @@
         </form>
 
         {% for ad in ads %}
-        <article class="f66-card glass-elevated" style="margin-bottom:1rem;padding:1rem 1.1rem;">
-          <h3 style="margin:0 0 .35rem;"><a href="{{ ad.get_absolute_url }}">{{ ad.title }}</a></h3>
-          <div class="page-subtitle" style="margin-bottom:.55rem;">
+        <article class="f66-card glass-elevated pw-ad-card">
+          <h3><a href="{{ ad.get_absolute_url }}">{{ ad.title }}</a></h3>
+          <div class="page-subtitle pw-ad-meta">
             {{ ad.get_category_display }} • {{ ad.author.username }} • {{ ad.created_at|date:"d.m.Y H:i" }}
           </div>
-          <div>{{ ad.content|striptags|truncatechars:220 }}</div>
+          <div class="pw-ad-copy">{{ ad.content|striptags|truncatechars:220 }}</div>
         </article>
         {% empty %}
         <div class="f66-empty glass-elevated">

@@ -1,6 +1,4 @@
 from django.urls import path, include
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_cookie
 from django.contrib.auth import views as auth_views
 from rest_framework.routers import SimpleRouter
 from . import views
@@ -9,7 +7,7 @@ from .views import (
     IndexView, NewsList, NewsDetail, ArticleList, ArticleDetail,
     like_post, CategoryPosts, ProductList, ProductDetail,
     NewsSearchView, NewsCreateView, ArticleCreateView,
-    PostUpdateView, upgrade, subscribe_category, unsubscribe_category, test_email_view,
+    PostUpdateView, PostDeleteView, upgrade, subscribe_category, unsubscribe_category, test_email_view,
     profile_view, SmartFeedView, react_post, subscribe_author, unsubscribe_author,
     UserPasswordChangeView, change_email_view, set_timezone_view,
     PWSignupView, PWVerifyEmailCodeView, PWAdListView, PWAdDetailView,
@@ -26,13 +24,14 @@ urlpatterns = [
     path('', include(api_router.urls)),
 
     # Главная
-    path('', cache_page(60)(vary_on_cookie(IndexView.as_view())), name='home'),
+    path('', IndexView.as_view(), name='home'),
 
     # Новости
-    path('news/', cache_page(60 * 5)(vary_on_cookie(NewsList.as_view())), name='news_list'),
-    path('news/<int:pk>/', cache_page(60 * 5)(vary_on_cookie(NewsDetail.as_view())), name='news_detail'),
+    path('news/', NewsList.as_view(), name='news_list'),
+    path('news/<int:pk>/', NewsDetail.as_view(), name='news_detail'),
     path('news/create/', NewsCreateView.as_view(), name='news_create'),
     path('news/<int:pk>/edit/', PostUpdateView.as_view(), name='post_edit'),
+    path('posts/<int:pk>/delete/', PostDeleteView.as_view(), name='post_delete'),
     path('news/<int:post_id>/like/', like_post, name='like_post'),
 
     # Статьи
@@ -41,7 +40,7 @@ urlpatterns = [
     path('articles/create/', ArticleCreateView.as_view(), name='article_create'),
 
     # Категории
-    path('category/<int:pk>/', cache_page(60 * 5)(vary_on_cookie(CategoryPosts.as_view())), name='category_posts'),
+    path('category/<int:pk>/', CategoryPosts.as_view(), name='category_posts'),
     path('category/<int:pk>/subscribe/', subscribe_category, name='subscribe_category'),
     path('category/<int:pk>/unsubscribe/', unsubscribe_category, name='unsubscribe_category'),
     path('author/<int:author_id>/subscribe/', subscribe_author, name='subscribe_author'),
@@ -62,7 +61,7 @@ urlpatterns = [
     path('products/<int:pk>/', ProductDetail.as_view(), name='product_detail'),
 
     # Поиск
-    path('news/search/', cache_page(60 * 5)(vary_on_cookie(NewsSearchView.as_view())), name='news_search'),
+    path('news/search/', NewsSearchView.as_view(), name='news_search'),
 
     # Авторизация и регистрация
     path('accounts/', include('allauth.urls')),

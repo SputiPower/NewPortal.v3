@@ -1,13 +1,25 @@
 {% extends 'base.html' %}
 
+{% block title %}Удаление товара{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<h1>Удаление товара</h1>
-<hr>
-<form action="" method="post">
-    {% csrf_token %}
-    <p>Удаляем "{{ object.name }}"?</p>
-    <input type="submit" value="Delete" />
-</form>
-{% endblock content %}
-
+<div class="f66-shell">
+  <section class="f66-section f66-section-offset-top">
+    <div class="f66-container-delete">
+      <section class="profile-card profile-card-centered glass-elevated reveal-on-scroll">
+        <h2>Удаление товара</h2>
+        <p class="page-subtitle">Это действие необратимо.</p>
+        <form action="" method="post" class="post-form detail-body-spaced">
+          {% csrf_token %}
+          <p>Удаляем «{{ object.name }}»?</p>
+          <div class="form-actions form-actions-center">
+            <button type="submit" class="f66-btn f66-btn-primary">Удалить</button>
+            <a href="{% url 'product_detail' object.pk %}" class="f66-btn f66-btn-ghost">Отмена</a>
+          </div>
+        </form>
+      </section>
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -7,26 +7,29 @@
 <article class="f66-detail-shell">
   <header class="f66-detail-hero reveal-on-scroll">
     <div class="f66-detail-overlay"></div>
-    {% if product.image %}
-    <img class="f66-detail-hero-image" src="{{ product.image.url }}" alt="{{ product.name }}" fetchpriority="high">
-    {% else %}
-    <div class="f66-detail-hero-image f66-media-fallback"><span>Product</span></div>
-    {% endif %}
+    <div class="f66-detail-hero-image f66-media-fallback">
+      <span>{{ product.category.name }}</span>
+    </div>
 
     <div class="f66-detail-headline">
       <p class="f66-kicker">NewsSputi • Product</p>
       <h1>{{ product.name }}</h1>
-      <p class="f66-detail-meta">Стоимость {{ product.price }} ₽</p>
+      <p class="f66-detail-meta">{{ product.category.name }} • {{ product.price|floatformat:2 }} ₽ • Остаток {{ product.quantity }}</p>
     </div>
   </header>
 
   <div class="f66-container f66-detail-content-wrap">
     <section class="f66-detail-content product-detail-card glass-elevated reveal-on-scroll">
+      <div class="chips detail-body-spaced">
+        <span class="chip">Категория: {{ product.category.name }}</span>
+        <span class="chip">Количество: {{ product.quantity }}</span>
+      </div>
       <div class="f66-typography">{{ product.description|default:'Описание отсутствует' }}</div>
     </section>
 
     <footer class="f66-detail-actions reveal-on-scroll">
-      <a href="{% url 'products_list' %}" class="f66-btn f66-btn-ghost">Назад в каталог</a>
+      <a href="{% url 'product_list' %}" class="f66-btn f66-btn-ghost">Назад в каталог</a>
+      <a href="{% url 'product_update' product.pk %}" class="f66-btn f66-btn-primary">Редактировать</a>
     </footer>
   </div>
 </article>

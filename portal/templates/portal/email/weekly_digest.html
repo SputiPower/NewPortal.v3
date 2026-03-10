@@ -3,95 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Еженедельный дайджест</title>
+    <title>Еженедельный дайджест NewsSputi</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
+            margin: 0;
+            padding: 24px 12px;
+            background: #f3f7ff;
+            color: #111113;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+            line-height: 1.5;
         }
-        .container {
-            max-width: 600px;
+        .shell {
+            max-width: 680px;
             margin: 0 auto;
-            padding: 20px;
+            background: #ffffff;
+            border: 1px solid #dbe7ff;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
         }
-        h1 {
-            color: #333;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
+        .hero {
+            padding: 28px 24px;
+            color: #ffffff;
+            background: linear-gradient(130deg, #0a84ff 0%, #2f6bff 50%, #00b7ff 100%);
+            text-align: left;
+        }
+        .brand {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        .hero h1 {
+            margin: 0 0 8px;
+            font-size: 28px;
+            line-height: 1.2;
+        }
+        .hero p {
+            margin: 0;
+            font-size: 15px;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 24px;
+        }
+        .hello {
+            margin: 0 0 16px;
+            font-size: 16px;
+        }
+        .lead {
+            margin: 0 0 18px;
+            color: #3a3a42;
+        }
+        .categories {
+            margin: 0 0 20px;
+            padding: 14px;
+            border-radius: 12px;
+            background: #eef4ff;
+            border: 1px solid #d7e6ff;
+        }
+        .categories strong {
+            display: inline-block;
+            margin-right: 6px;
+        }
+        .tag {
+            display: inline-block;
+            margin: 4px 6px 0 0;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            color: #0f3b8f;
+            background: #dce9ff;
+            border: 1px solid #c6dbff;
         }
         .post {
-            margin: 20px 0;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #f9f9f9;
+            margin: 0 0 14px;
+            padding: 16px;
+            border-radius: 14px;
+            border: 1px solid #dfe9ff;
+            background: #fbfdff;
         }
-        .post-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #007bff;
-            margin-bottom: 5px;
+        .post h3 {
+            margin: 0 0 6px;
+            font-size: 20px;
+            color: #0d2f73;
         }
-        .post-category {
-            color: #666;
-            font-size: 12px;
-            margin-bottom: 10px;
+        .meta {
+            margin: 0 0 10px;
+            color: #5c5c63;
+            font-size: 13px;
         }
-        .post-preview {
-            color: #444;
-            margin-bottom: 10px;
+        .preview {
+            margin: 0 0 12px;
+            color: #2d2d32;
         }
-        .post-date {
-            color: #999;
-            font-size: 12px;
-        }
-        .post-link {
+        .action {
             display: inline-block;
-            margin-top: 10px;
-            padding: 8px 15px;
-            background-color: #007bff;
-            color: white;
+            background: #0a84ff;
+            color: #ffffff !important;
             text-decoration: none;
-            border-radius: 3px;
+            border-radius: 10px;
+            padding: 9px 14px;
+            font-weight: 600;
+            font-size: 14px;
         }
-        .post-link:hover {
-            background-color: #0056b3;
+        .empty {
+            margin: 0;
+            padding: 18px;
+            border-radius: 12px;
+            text-align: center;
+            color: #5c5c63;
+            background: #f7f9fe;
+            border: 1px dashed #c8d7f8;
         }
         .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            color: #666;
+            border-top: 1px solid #ebf1ff;
+            color: #6c6c75;
             font-size: 12px;
+            text-align: center;
+            padding: 18px 24px 22px;
+        }
+        .footer a {
+            color: #0a84ff;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Еженедельный дайджест News Portal</h1>
-        <p>Здравствуйте, <strong>{{ user.username }}</strong>!</p>
-        <p>Вот новые статьи за неделю в ваших любимых разделах:</p>
-
-        {% for post in posts %}
-        <div class="post">
-            <div class="post-title">{{ post.title }}</div>
-            <div class="post-category">
-                {% for category in post.categories.all %}
-                    <span style="background-color: {{ category.color }}; color: white; padding: 2px 8px; border-radius: 3px; margin-right: 5px;">{{ category.name }}</span>
-                {% endfor %}
-            </div>
-            <div class="post-preview">{{ post.text|truncatechars:150 }}</div>
-            <div class="post-date">{{ post.created_at|date:"d.m.Y в H:i" }}</div>
-            <a href="http://127.0.0.1:8000{% url 'news_detail' post.id %}" class="post-link">Читать полностью</a>
+    <div class="shell">
+        <div class="hero">
+            <div class="brand">NewsSputi</div>
+            <h1>Еженедельный дайджест</h1>
+            <p>Свежие новости и статьи по твоим подпискам</p>
         </div>
-        {% empty %}
-        <p>На этой неделе новых статей не было.</p>
-        {% endfor %}
+
+        <div class="content">
+            <p class="hello">Привет, <strong>{{ user.first_name|default:user.username }}</strong>.</p>
+            <p class="lead">За последние 7 дней в интересующих тебя разделах появились новые публикации.</p>
+
+            {% if posts %}
+                <div class="categories">
+                    <strong>Категории:</strong>
+                    {% for category in categories %}
+                        <span class="tag">{{ category.name }}</span>
+                    {% endfor %}
+                </div>
+
+                {% for post in posts %}
+                    <div class="post">
+                        <h3>{{ post.title }}</h3>
+                        <p class="meta">
+                            {% if post.type == 'NW' %}Новость{% else %}Статья{% endif %}
+                            • {{ post.created_at|date:"d.m.Y H:i" }}
+                        </p>
+                        <p class="preview">{{ post.preview }}</p>
+                        <a href="{{ site_base_url }}{{ post.get_absolute_url }}" class="action">Читать полностью</a>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="empty">Новых публикаций за неделю не найдено.</p>
+            {% endif %}
+        </div>
 
         <div class="footer">
-            <p>Это письмо отправлено, потому что вы подписаны на одну или несколько категорий на News Portal.</p>
-            <p>Если вы больше не хотите получать такие письма, отпишитесь от категорий в своём профиле.</p>
+            Это автоматическое письмо от NewsSputi. Пожалуйста, не отвечай на него.<br>
+            Управлять подписками можно в <a href="{{ site_base_url }}/">личном кабинете</a>.
         </div>
     </div>
 </body>

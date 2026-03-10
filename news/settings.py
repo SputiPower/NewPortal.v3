@@ -54,6 +54,7 @@ CSRF_TRUSTED_ORIGINS = env_list(
     'CSRF_TRUSTED_ORIGINS',
     'http://127.0.0.1:8000,http://localhost:8000',
 )
+SITE_BASE_URL = os.getenv('SITE_BASE_URL', 'http://127.0.0.1:8000').rstrip('/')
 
 
 # Application definition
@@ -294,13 +295,15 @@ DEFAULT_FROM_EMAIL = 'noreply@newsportal.com'
 EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "gmail").lower()
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST_USER = os.getenv("GMAIL_EMAIL_USER", DEFAULT_FROM_EMAIL)
+EMAIL_HOST_PASSWORD = os.getenv("GMAIL_EMAIL_PASSWORD", "")
 
 if EMAIL_PROVIDER == "gmail":
     EMAIL_HOST = 'smtp.gmail.com'
     EMAIL_PORT = 587
     EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.getenv("GMAIL_EMAIL_USER")
-    EMAIL_HOST_PASSWORD = os.getenv("GMAIL_EMAIL_PASSWORD")
+    EMAIL_HOST_USER = os.getenv("GMAIL_EMAIL_USER", EMAIL_HOST_USER)
+    EMAIL_HOST_PASSWORD = os.getenv("GMAIL_EMAIL_PASSWORD", EMAIL_HOST_PASSWORD)
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
@@ -325,6 +328,12 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_CONNECTION_TIMEOUT = float(os.getenv('CELERY_BROKER_CONNECTION_TIMEOUT', '1'))
+CELERY_BROKER_TRANSPORT_OPTIONS = {
+    'socket_connect_timeout': float(os.getenv('CELERY_SOCKET_CONNECT_TIMEOUT', '1')),
+    'socket_timeout': float(os.getenv('CELERY_SOCKET_TIMEOUT', '1')),
+    'retry_on_timeout': False,
+}
 
 # Celery Beat Schedule задается в news/celery.py через crontab.
 
@@ -445,6 +454,11 @@ LOGGING = {
         },
         'django.security': {
             'handlers': ['security_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.utils.autoreload': {
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
