@@ -46,6 +46,14 @@ body.dark-mode .form-wrapper h2 {
   color: #eee;
 }
 
+.form-lead {
+  margin: 0 0 18px;
+  text-align: center;
+  color: #5b6472;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
 /* ===================== INPUTS ===================== */
 .input-wrapper {
   position: relative;

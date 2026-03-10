@@ -1,27 +1,31 @@
 {% extends 'base.html' %}
 
 {% block title %}Удалить пост{% endblock %}
-{% block body_class %}premium-page{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<div class="confirm-shell">
-  <section class="confirm-card glass-surface reveal">
-    <h1 class="detail-title">Удалить пост?</h1>
-    <p class="page-subtitle">Это действие необратимо.</p>
+<div class="f66-shell">
+  <section class="f66-section f66-section-offset-top">
+    <div class="f66-container-delete">
+      <section class="profile-card profile-card-centered glass-elevated reveal-on-scroll">
+        <h1 class="detail-title">Удалить пост?</h1>
+        <p class="page-subtitle">Это действие необратимо.</p>
 
-    <div class="detail-body" style="text-align:left; margin-top:1rem;">
-      <strong>{{ object.title }}</strong>
-      <p>{{ object.text|truncatechars:180 }}</p>
-    </div>
+        <div class="detail-body detail-body-left detail-body-spaced">
+          <strong>{{ object.title }}</strong>
+          <p>{{ object.text|truncatechars:180 }}</p>
+        </div>
 
-    <div class="warning-box">После удаления пост и связанные комментарии будут удалены окончательно.</div>
+        <div class="warning-box">После удаления пост и связанные комментарии будут удалены окончательно.</div>
 
-    <div class="form-actions" style="justify-content:center;">
-      <form method="post">
-        {% csrf_token %}
-        <button type="submit" class="btn-premium btn-danger-premium">Да, удалить</button>
-      </form>
-      <a href="{% if object.type == 'NW' %}{% url 'news_list' %}{% else %}{% url 'article_list' %}{% endif %}" class="btn-premium btn-ghost-premium">Отмена</a>
+        <div class="form-actions form-actions-center">
+          <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="f66-btn f66-btn-primary">Да, удалить</button>
+          </form>
+          <a href="{% if object.type == 'NW' %}{% url 'news_list' %}{% else %}{% url 'article_list' %}{% endif %}" class="f66-btn f66-btn-ghost">Отмена</a>
+        </div>
+      </section>
     </div>
   </section>
 </div>

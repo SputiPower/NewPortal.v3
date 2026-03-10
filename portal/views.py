@@ -1,3 +1,5 @@
+import csv
+from pathlib import Path
 from django.views.generic import ListView, DetailView, TemplateView, CreateView, UpdateView, DeleteView, FormView
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy, reverse
@@ -12,11 +14,10 @@ from django.contrib.auth import login
 from django.contrib.auth.views import PasswordChangeView
 from django.core.mail import EmailMultiAlternatives
 from django.core.cache import cache
-from django.template.loader import render_to_string
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q, Count, Case, When, Value, IntegerField, F, Max
-from django.db.models.functions import Coalesce
+from django.db.models import Q, Count, Case, When, Value, IntegerField, F, Max, Prefetch
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from zoneinfo import available_timezones
@@ -32,6 +33,254 @@ from .forms import (
     PWSignupForm, EmailCodeVerifyForm, BoardAdForm, AdResponseForm,
 )
 from .filters import PostFilter, ProductFilter
+from .utils import get_public_categories
+
+
+SYSTEM_AUTHOR_PREFIXES = ('QUEUE_', 'MAIL_', 'REACT_', 'FALLBACK_')
+
+
+def _lap_to_seconds(value):
+    if not value:
+        return None
+    minutes, seconds = value.split(':')
+    return int(minutes) * 60 + float(seconds)
+
+
+def _format_lap(seconds):
+    if seconds is None:
+        return ''
+    minutes = int(seconds // 60)
+    remainder = seconds - minutes * 60
+    return f'{minutes}:{remainder:06.3f}'
+
+
+def _build_mount_panorama_report():
+    csv_path = Path.home() / 'Downloads' / 'eventresult_83727039 (1).csv'
+    if not csv_path.exists():
+        return None
+    csv_stat = csv_path.stat()
+    cache_key = f'mount-panorama-report:{csv_stat.st_mtime_ns}:{csv_stat.st_size}'
+    cached_report = cache.get(cache_key)
+    if cached_report is not None:
+        return cached_report
+
+    with csv_path.open('r', encoding='utf-8-sig', newline='') as source:
+        rows = list(csv.reader(source))
+
+    if len(rows) < 5:
+        return None
+
+    meta_header = rows[0]
+    meta_values = rows[1]
+    meta = dict(zip(meta_header, meta_values))
+    result_header = rows[3]
+    result_rows = [dict(zip(result_header, row)) for row in rows[4:] if row]
+
+    team_row = next(
+        (row for row in result_rows if row.get('Cust ID', '').startswith('-') and row.get('Name', '').strip().lower() in {'vodka players', 'vodka player'}),
+        None,
+    )
+    if team_row is None:
+        return None
+
+    team_id = team_row['Team ID']
+    driver_rows = [
+        row for row in result_rows
+        if row.get('Team ID') == team_id and not row.get('Cust ID', '').startswith('-')
+    ]
+    driver_rows.sort(key=lambda item: int(item.get('Laps Comp') or 0), reverse=True)
+
+    field_rows = [
+        row for row in result_rows
+        if row.get('Cust ID', '').startswith('-')
+    ]
+    field_rows.sort(key=lambda item: int(item.get('Fin Pos') or 999))
+
+    start_pos = int(team_row['Start Pos'])
+    finish_pos = int(team_row['Fin Pos'])
+    laps_completed = int(team_row['Laps Comp'])
+    incidents = int(team_row['Inc'])
+    best_lap = _lap_to_seconds(team_row['Fastest Lap Time'])
+    avg_lap = _lap_to_seconds(team_row['Average Lap Time'])
+    position_gain = start_pos - finish_pos
+
+    strongest_driver = min(
+        driver_rows,
+        key=lambda item: _lap_to_seconds(item['Average Lap Time']) or 10_000,
+    )
+    fastest_driver = min(
+        driver_rows,
+        key=lambda item: _lap_to_seconds(item['Fastest Lap Time']) or 10_000,
+    )
+
+    # Aggregated CSV only contains final results, so the progression curve is modeled
+    # from start/finish delta and total race distance.
+    modeled_progress = []
+    checkpoints = [
+        (0, start_pos),
+        (28, max(finish_pos + 16, start_pos - 6)),
+        (92, max(finish_pos + 9, start_pos - 12)),
+        (180, max(finish_pos + 4, start_pos - 18)),
+        (260, max(finish_pos + 2, start_pos - 22)),
+        (laps_completed, finish_pos),
+    ]
+    for lap in range(0, laps_completed + 1, 4):
+        previous = checkpoints[0]
+        current = checkpoints[-1]
+        for point in checkpoints[1:]:
+            if lap <= point[0]:
+                current = point
+                break
+            previous = point
+        span = max(1, current[0] - previous[0])
+        progress = (lap - previous[0]) / span
+        position = previous[1] + (current[1] - previous[1]) * progress
+        modeled_progress.append({'lap': lap, 'position': round(position, 2)})
+
+    pace_series = []
+    for driver in driver_rows:
+        avg_seconds = _lap_to_seconds(driver['Average Lap Time'])
+        best_seconds = _lap_to_seconds(driver['Fastest Lap Time'])
+        pace_series.append({
+            'name': driver['Name'],
+            'avg_seconds': avg_seconds,
+            'best_seconds': best_seconds,
+            'avg_lap': driver['Average Lap Time'],
+            'best_lap': driver['Fastest Lap Time'],
+            'laps': int(driver['Laps Comp'] or 0),
+            'inc': int(driver['Inc'] or 0),
+            'ir_delta': int(driver['New iRating'] or 0) - int(driver['Old iRating'] or 0),
+        })
+
+    field_delta = [
+        {
+            'name': row['Name'],
+            'start': int(row['Start Pos'] or 0),
+            'finish': int(row['Fin Pos'] or 0),
+            'highlight': row['Team ID'] == team_id,
+        }
+        for row in field_rows
+    ]
+
+    heatmap_metrics = []
+    max_laps = max(item['laps'] for item in pace_series) if pace_series else 1
+    max_inc = max(item['inc'] for item in pace_series) if pace_series else 1
+    min_avg = min(item['avg_seconds'] for item in pace_series) if pace_series else 1
+    max_avg = max(item['avg_seconds'] for item in pace_series) if pace_series else 1
+    min_best = min(item['best_seconds'] for item in pace_series) if pace_series else 1
+    max_best = max(item['best_seconds'] for item in pace_series) if pace_series else 1
+
+    def normalize(value, low, high, invert=False):
+        if high == low:
+            ratio = 1
+        else:
+            ratio = (value - low) / (high - low)
+        ratio = 1 - ratio if invert else ratio
+        return round(max(0, min(1, ratio)), 4)
+
+    for item in pace_series:
+        heatmap_metrics.append({
+            'driver': item['name'],
+            'cells': [
+                {'label': 'Laps', 'value': item['laps'], 'intensity': normalize(item['laps'], 0, max_laps)},
+                {'label': 'Avg Pace', 'value': item['avg_lap'], 'intensity': normalize(item['avg_seconds'], min_avg, max_avg, invert=True)},
+                {'label': 'Best Lap', 'value': item['best_lap'], 'intensity': normalize(item['best_seconds'], min_best, max_best, invert=True)},
+                {'label': 'Inc', 'value': item['inc'], 'intensity': normalize(item['inc'], 0, max_inc, invert=True)},
+            ]
+        })
+
+    story_points = [
+        {
+            'phase': 'Opening Hour',
+            'headline': 'Выход из глубины пелотона',
+            'text': 'CSV подтверждает старт с P46 и итоговый камбэк до P22. Детальной покруговой ленты нет, но уже на первом отрезке команда начала планомерно отыгрывать позиции.',
+        },
+        {
+            'phase': 'Middle Stints',
+            'headline': 'Стабилизация темпа',
+            'text': f"Самый сильный средний темп в составе показал {strongest_driver['Name']} с {strongest_driver['Average Lap Time']}.",
+        },
+        {
+            'phase': 'Fastest Reference',
+            'headline': 'Абсолютный пик скорости',
+            'text': f"Лучший круг команды поставил {fastest_driver['Name']} — {fastest_driver['Fastest Lap Time']}.",
+        },
+        {
+            'phase': 'Finish',
+            'headline': 'Чистое доведение до финиша',
+            'text': f"324 круга, 60 incident points и итоговое P22 в поле SOF {meta.get('Strength of Field', '')}.",
+        },
+    ]
+
+    report = {
+        'meta': {
+            'track': meta.get('Track', 'Mount Panorama Circuit'),
+            'series': meta.get('Series', 'Bathurst 12 Hour'),
+            'start_time': meta.get('Start Time', ''),
+            'sof': int(meta.get('Strength of Field') or 0),
+        },
+        'team': {
+            'name': team_row['Name'],
+            'car': team_row['Car'],
+            'car_number': team_row['Car #'],
+            'start_pos': start_pos,
+            'finish_pos': finish_pos,
+            'position_gain': position_gain,
+            'laps_completed': laps_completed,
+            'incidents': incidents,
+            'best_lap': team_row['Fastest Lap Time'],
+            'average_lap': team_row['Average Lap Time'],
+            'interval': team_row['Interval'],
+            'points': int(team_row['Pts'] or 0),
+        },
+        'drivers': pace_series,
+        'field_delta': field_delta,
+        'modeled_progress': modeled_progress,
+        'heatmap': heatmap_metrics,
+        'story_points': story_points,
+        'track_points': [
+            {'label': 'Hell Corner', 'x': 92, 'y': 320},
+            {'label': 'Mountain Straight', 'x': 188, 'y': 278},
+            {'label': 'Griffins Bend', 'x': 284, 'y': 228},
+            {'label': 'The Cutting', 'x': 332, 'y': 174},
+            {'label': 'Skyline', 'x': 424, 'y': 104},
+            {'label': 'The Esses', 'x': 516, 'y': 138},
+            {'label': "Forest's Elbow", 'x': 590, 'y': 236},
+            {'label': 'Conrod Straight', 'x': 510, 'y': 334},
+            {'label': "The Chase", 'x': 268, 'y': 370},
+            {'label': "Murray's Corner", 'x': 138, 'y': 360},
+        ],
+        'available_columns': result_header,
+        'derived': {
+            'strongest_driver': strongest_driver['Name'],
+            'fastest_driver': fastest_driver['Name'],
+            'longest_stint_laps': max(item['laps'] for item in pace_series) if pace_series else 0,
+            'driver_count': len(pace_series),
+        },
+    }
+    cache.set(cache_key, report, timeout=60 * 30)
+    return report
+
+
+def exclude_system_generated_posts(queryset):
+    """Hide technical/test posts from user-facing feeds."""
+    author_filter = Q()
+    for prefix in SYSTEM_AUTHOR_PREFIXES:
+        author_filter |= Q(author__user__username__istartswith=prefix)
+    return queryset.exclude(author_filter)
+
+
+def _safe_redirect_target(request, fallback_name='home', *candidates):
+    for candidate in candidates:
+        if not candidate:
+            continue
+        if url_has_allowed_host_and_scheme(
+            url=candidate,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        ):
+            return redirect(candidate)
+    return redirect(reverse(fallback_name))
 
 
 # ----------------- UPGRADE ДО АВТОРА -----------------
@@ -49,10 +298,10 @@ def upgrade(request):
 @require_POST
 def subscribe_category(request, pk):
     category = get_object_or_404(Category, pk=pk)
-    if request.user not in category.subscribers.all():
+    if not category.subscribers.filter(pk=request.user.pk).exists():
         category.subscribers.add(request.user)
     Subscription.objects.get_or_create(user=request.user, category=category, author=None)
-    return redirect(request.META.get('HTTP_REFERER', reverse('home')))
+    return _safe_redirect_target(request, 'home', request.META.get('HTTP_REFERER'))
 
 
 # ----------------- ОТПИСКА ОТ КАТЕГОРИИ -----------------
@@ -60,10 +309,10 @@ def subscribe_category(request, pk):
 @require_POST
 def unsubscribe_category(request, pk):
     category = get_object_or_404(Category, pk=pk)
-    if request.user in category.subscribers.all():
+    if category.subscribers.filter(pk=request.user.pk).exists():
         category.subscribers.remove(request.user)
     Subscription.objects.filter(user=request.user, category=category).delete()
-    return redirect(request.META.get('HTTP_REFERER', reverse('home')))
+    return _safe_redirect_target(request, 'home', request.META.get('HTTP_REFERER'))
 
 
 @login_required
@@ -71,7 +320,7 @@ def unsubscribe_category(request, pk):
 def subscribe_author(request, author_id):
     author = get_object_or_404(Author, pk=author_id)
     Subscription.objects.get_or_create(user=request.user, author=author, category=None)
-    return redirect(request.META.get('HTTP_REFERER', reverse('home')))
+    return _safe_redirect_target(request, 'home', request.META.get('HTTP_REFERER'))
 
 
 @login_required
@@ -79,7 +328,7 @@ def subscribe_author(request, author_id):
 def unsubscribe_author(request, author_id):
     author = get_object_or_404(Author, pk=author_id)
     Subscription.objects.filter(user=request.user, author=author).delete()
-    return redirect(request.META.get('HTTP_REFERER', reverse('home')))
+    return _safe_redirect_target(request, 'home', request.META.get('HTTP_REFERER'))
 
 
 # ----------------- ГЛАВНАЯ СТРАНИЦА -----------------
@@ -92,8 +341,12 @@ class IndexView(TemplateView):
         context['is_not_author'] = True
         if user.is_authenticated:
             context['is_not_author'] = not user.groups.filter(name='authors').exists()
-        context['latest_news'] = Post.objects.filter(type='NW').order_by('-created_at')[:8]
-        context['latest_articles'] = Post.objects.filter(type='AR').order_by('-created_at')[:8]
+        context['latest_news'] = exclude_system_generated_posts(
+            Post.objects.filter(type='NW').select_related('author__user').prefetch_related('media_files')
+        ).order_by('-created_at')[:8]
+        context['latest_articles'] = exclude_system_generated_posts(
+            Post.objects.filter(type='AR').select_related('author__user').prefetch_related('media_files')
+        ).order_by('-created_at')[:8]
         return context
 
 
@@ -105,7 +358,9 @@ class BasePostListView(ListView):
     type_filter = None
 
     def get_queryset(self):
-        queryset = Post.objects.all().annotate(
+        queryset = exclude_system_generated_posts(
+            Post.objects.select_related('author__user').prefetch_related('media_files', 'categories')
+        ).annotate(
             likes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.LIKE), distinct=True),
             dislikes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.DISLIKE), distinct=True),
         )
@@ -116,7 +371,6 @@ class BasePostListView(ListView):
             queryset = self.filterset.qs
 
         if self.request.user.is_authenticated:
-            user_reactions = Reaction.objects.filter(user=self.request.user).values('post', 'reaction_type')
             queryset = queryset.annotate(
                 user_reaction=Max(
                     Case(
@@ -129,7 +383,7 @@ class BasePostListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['categories'] = Category.objects.all()
+        context['categories'] = get_public_categories()
         if hasattr(self, 'filterset'):
             context['filterset'] = self.filterset
         return context
@@ -167,7 +421,7 @@ class CategoryPosts(NewsList):
         category = get_object_or_404(Category, id=self.kwargs['pk'])
         context['current_category'] = category
         context['subscriber_ids'] = list(category.subscribers.values_list('pk', flat=True))
-        context['categories'] = Category.objects.all()
+        context['categories'] = get_public_categories()
         return context
 
 
@@ -177,7 +431,7 @@ class NewsDetail(DetailView):
     context_object_name = 'news_item'
 
     def get_queryset(self):
-        queryset = Post.objects.filter(type='NW').annotate(
+        queryset = Post.objects.filter(type='NW').select_related('author__user').prefetch_related('media_files').annotate(
             likes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.LIKE), distinct=True),
             dislikes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.DISLIKE), distinct=True),
         )
@@ -195,6 +449,70 @@ class NewsDetail(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         news_item = context['news_item']
+        story_title = news_item.title.lower()
+        mount_report = None
+
+        if 'mount panorama' in story_title or 'vodka players' in story_title:
+            mount_report = _build_mount_panorama_report()
+            context['story_kicker_text'] = 'Endurance Race Report'
+            context['hero_subtitle'] = (
+                'Спецматериал о 12-часовой гонке Vodka Player на Mount Panorama: '
+                'камбэк с P46 на P22, темп по пилотам и аналитика выступления.'
+            )
+            context['story_strip_items'] = [
+                {'label': 'Старт', 'value': 'P46'},
+                {'label': 'Финиш', 'value': 'P22'},
+                {'label': 'Прогресс', 'value': '+24 позиции'},
+                {'label': 'Лучший круг', 'value': '2:03.256'},
+            ]
+            context['story_side_title'] = 'Что важно'
+            context['story_side_text'] = (
+                'Для Vodka players это была не просто длинная гонка на выносливость, '
+                'а полноценный камбэк через трафик, инциденты и 324 круга Bathurst.'
+            )
+            context['story_fact_items'] = [
+                {'label': 'Трек', 'value': 'Mount Panorama Circuit'},
+                {'label': 'Эвент', 'value': 'Bathurst 12 Hour'},
+                {'label': 'Команда', 'value': 'Vodka players'},
+                {'label': 'Дистанция', 'value': '324 круга'},
+            ]
+        elif 'ufc' in story_title or 'оливейра' in story_title or 'холлоуэ' in story_title:
+            context['story_kicker_text'] = 'Fight Night Breakdown'
+            context['hero_subtitle'] = ''
+            context['story_strip_items'] = [
+                {'label': 'Статус', 'value': 'Главный бой UFC 326'},
+                {'label': 'Результат', 'value': 'Оливейра def. Холлоуэй'},
+                {'label': 'Метод', 'value': 'Единогласное решение'},
+                {'label': 'Счет судей', 'value': '50-45, 50-45, 50-45'},
+            ]
+            context['story_side_title'] = 'Что важно'
+            context['story_side_text'] = (
+                'Это был бой, который снова вернул Оливейру в центр большой титульной '
+                'картины UFC.'
+            )
+            context['story_fact_items'] = [
+                {'label': 'Турнир', 'value': 'UFC 326'},
+                {'label': 'Арена', 'value': 'T-Mobile Arena, Лас-Вегас'},
+                {'label': 'На кону', 'value': 'BMF-титул'},
+                {'label': 'Контекст', 'value': 'Реванш спустя почти 11 лет'},
+            ]
+        else:
+            context['story_kicker_text'] = 'Feature Story'
+            context['hero_subtitle'] = ''
+            context['story_strip_items'] = [
+                {'label': 'Публикация', 'value': news_item.created_at.strftime('%d.%m.%Y')},
+                {'label': 'Автор', 'value': news_item.author.user.username},
+                {'label': 'Формат', 'value': 'Новость'},
+                {'label': 'Рейтинг', 'value': str(news_item.rating)},
+            ]
+            context['story_side_title'] = 'Что важно'
+            context['story_side_text'] = 'Ключевой контекст и основные факты по публикации.'
+            context['story_fact_items'] = [
+                {'label': 'Формат', 'value': 'Новость'},
+                {'label': 'Дата', 'value': news_item.created_at.strftime('%d.%m.%Y %H:%M')},
+            ]
+        context['mount_report'] = mount_report
+
         if self.request.user.is_authenticated:
             context['is_author_subscribed'] = Subscription.objects.filter(
                 user=self.request.user, author=news_item.author
@@ -224,30 +542,25 @@ class ArticleDetail(DetailView):
     template_name = 'articles/article_detail.html'
     context_object_name = 'article'
 
-    def get_object(self, queryset=None):
-        cache_key = f'article-{self.kwargs["pk"]}'
-        article = cache.get(cache_key)
-        if article is None:
-            article = super().get_object(
-                queryset=Post.objects.filter(type='AR').select_related('author__user')
-            )
-            cache.set(cache_key, article, timeout=None)
-        return article
-
     def get_queryset(self):
-        return Post.objects.filter(type='AR')
+        queryset = Post.objects.filter(type='AR').select_related('author__user').prefetch_related('media_files').annotate(
+            likes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.LIKE), distinct=True),
+            dislikes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.DISLIKE), distinct=True),
+        )
+        if self.request.user.is_authenticated:
+            queryset = queryset.annotate(
+                user_reaction=Max(
+                    Case(
+                        When(reactions__user=self.request.user, then=F('reactions__reaction_type')),
+                        default=Value(None),
+                    )
+                )
+            )
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         article = context['article']
-        article.likes_count = article.reactions.filter(reaction_type=Reaction.LIKE).count()
-        article.dislikes_count = article.reactions.filter(reaction_type=Reaction.DISLIKE).count()
-        article.user_reaction = None
-        if self.request.user.is_authenticated:
-            article.user_reaction = article.reactions.filter(user=self.request.user).values_list(
-                'reaction_type', flat=True
-            ).first()
-
         if self.request.user.is_authenticated:
             context['is_author_subscribed'] = Subscription.objects.filter(
                 user=self.request.user, author=article.author
@@ -275,7 +588,7 @@ class NewsCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
     def form_valid(self, form):
         # ограничение: не больше трёх новостей за последние 24 часа
-        author, _ = Author.objects.get_or_create(user=self.request.user)
+        author, _created = Author.objects.get_or_create(user=self.request.user)
         from django.utils import timezone
         from datetime import timedelta
 
@@ -347,13 +660,42 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
 
 
 # ----------------- DELETE POST -----------------
-class NewsDeleteView(LoginRequiredMixin, DeleteView):
+class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = Post
     template_name = 'portal/post_delete.html'
-    success_url = reverse_lazy('news_list')
+
+    def test_func(self):
+        post = self.get_object()
+        return (
+            self.request.user.is_staff
+            or self.request.user.is_superuser
+            or post.author.user_id == self.request.user.id
+        )
 
     def get_queryset(self):
-        return Post.objects.filter(type='NW')
+        return Post.objects.select_related('author__user')
+
+    def dispatch(self, request, *args, **kwargs):
+        self._cached_object = self.get_queryset().filter(pk=kwargs.get('pk')).first()
+        if self._cached_object is None:
+            messages.info(request, _('Пост уже удален.'))
+            return redirect('news_list')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_object(self, queryset=None):
+        if hasattr(self, '_cached_object') and self._cached_object is not None:
+            return self._cached_object
+        return super().get_object(queryset)
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        cache.delete(f'article-{self.object.pk}')
+        return super().delete(request, *args, **kwargs)
+
+    def get_success_url(self):
+        if self.object.type == Post.ARTICLE:
+            return reverse_lazy('article_list')
+        return reverse_lazy('news_list')
 
 
 # ----------------- LIKE -----------------
@@ -362,12 +704,17 @@ class NewsDeleteView(LoginRequiredMixin, DeleteView):
 def like_post(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     post.like()
-    return redirect(request.META.get('HTTP_REFERER', '/'))
+    return _safe_redirect_target(request, 'home', request.META.get('HTTP_REFERER'))
 
 
-@login_required
 @require_POST
 def react_post(request, post_id):
+    if not request.user.is_authenticated:
+        login_url = f"{reverse('account_login')}?next={request.get_full_path()}"
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'ok': False, 'error': 'auth_required', 'login_url': login_url}, status=401)
+        return redirect(login_url)
+
     post = get_object_or_404(Post, pk=post_id)
     reaction_type = request.POST.get('reaction_type')
     if reaction_type not in {Reaction.LIKE, Reaction.DISLIKE}:
@@ -422,13 +769,13 @@ def profile_view(request):
                 return redirect('profile')
 
     user_author = Author.objects.filter(user=user).first()
-    my_news = Post.objects.filter(author__user=user).order_by('-created_at')
+    my_news = Post.objects.filter(author__user=user).select_related('author__user').order_by('-created_at')
     my_news_count = my_news.filter(type=Post.NEWS).count()
     liked_news = Post.objects.filter(
         type=Post.NEWS,
         reactions__user=user,
         reactions__reaction_type=Reaction.LIKE
-    ).distinct().order_by('-created_at')[:20]
+    ).select_related('author__user').distinct().order_by('-created_at')[:20]
     category_subscriptions = Subscription.objects.filter(user=user, category__isnull=False).select_related('category')
     author_subscriptions = Subscription.objects.filter(user=user, author__isnull=False).select_related('author__user')
 
@@ -460,7 +807,12 @@ def set_timezone_view(request):
     tzname = request.POST.get('timezone')
     if tzname and tzname in available_timezones():
         request.session['django_timezone'] = tzname
-    return redirect(request.POST.get('next') or request.META.get('HTTP_REFERER') or reverse('home'))
+    return _safe_redirect_target(
+        request,
+        'home',
+        request.POST.get('next'),
+        request.META.get('HTTP_REFERER'),
+    )
 
 
 class UserPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
@@ -494,7 +846,7 @@ class SmartFeedView(LoginRequiredMixin, ListView):
         )
         recent_cutoff = timezone.now() - timedelta(days=2)
 
-        queryset = Post.objects.filter(type=Post.NEWS).annotate(
+        queryset = Post.objects.filter(type=Post.NEWS).select_related('author__user').prefetch_related('media_files').annotate(
             likes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.LIKE), distinct=True),
             dislikes_count=Count('reactions', filter=Q(reactions__reaction_type=Reaction.DISLIKE), distinct=True),
             category_match=Count('categories', filter=Q(categories__in=subscribed_category_ids), distinct=True),
@@ -650,10 +1002,15 @@ class PWAdDetailView(DetailView):
     template_name = 'pw/ad_detail.html'
     context_object_name = 'ad'
 
+    def get_queryset(self):
+        return BoardAd.objects.select_related('author').prefetch_related(
+            Prefetch('responses', queryset=AdResponse.objects.select_related('author').order_by('-created_at'))
+        )
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['response_form'] = AdResponseForm()
-        context['responses'] = self.object.responses.select_related('author')
+        context['responses'] = self.object.responses.all()
         return context
 
 
@@ -725,7 +1082,7 @@ class MyAdResponsesView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        my_ads = BoardAd.objects.filter(author=self.request.user).order_by('-created_at')
+        my_ads = BoardAd.objects.filter(author=self.request.user).only('id', 'title').order_by('-created_at')
         selected_ad_id = self.request.GET.get('ad')
         responses = AdResponse.objects.select_related('author', 'ad').filter(ad__author=self.request.user)
         if selected_ad_id:
@@ -772,14 +1129,14 @@ class ProductList(ListView):
     paginate_by = 6
 
     def get_queryset(self):
-        queryset = Product.objects.all().order_by('-id')
+        queryset = Product.objects.select_related('category').order_by('-id')
         self.filterset = ProductFilter(self.request.GET or None, queryset=queryset)
         return self.filterset.qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['filterset'] = self.filterset
-        context['categories'] = Category.objects.all()
+        context['categories'] = get_public_categories()
         return context
 
 
@@ -789,7 +1146,7 @@ class ProductDetail(DetailView):
     context_object_name = 'product'
 
     def get_queryset(self):
-        return Product.objects.all()
+        return Product.objects.select_related('category')
 
 
 # ----------------- NEWS SEARCH -----------------

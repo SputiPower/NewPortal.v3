@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="f66-shell">
-  <section class="f66-hero">
+  <section class="f66-hero f66-hero-compact f66-category-hero">
     <div class="f66-hero-glow"></div>
     <div class="f66-container">
       <p class="f66-kicker reveal-on-scroll">Category Feed</p>
@@ -38,10 +38,14 @@
         {% for post in object_list %}
         <article class="f66-news-card glass-elevated reveal-on-scroll tilt-card" data-tilt-card>
           {% with media_preview=post.media_files.first %}
-            {% if post.image %}
-            <a href="{{ post.get_absolute_url }}" class="f66-card-media"><img src="{{ post.image.url }}" alt="{{ post.title }}"></a>
+            {% if post.preview_video %}
+            <a href="{{ post.get_absolute_url }}" class="f66-card-media">
+              <video src="{{ post.preview_video.url }}" autoplay muted loop playsinline preload="metadata" aria-label="{{ post.title }}"></video>
+            </a>
+            {% elif post.image %}
+            <a href="{{ post.get_absolute_url }}" class="f66-card-media"><img src="{{ post.image.url }}" alt="{{ post.title }}" loading="lazy" decoding="async"></a>
             {% elif media_preview %}
-            <a href="{{ post.get_absolute_url }}" class="f66-card-media"><img src="{{ media_preview.image.url }}" alt="{{ post.title }}"></a>
+            <a href="{{ post.get_absolute_url }}" class="f66-card-media"><img src="{{ media_preview.image.url }}" alt="{{ post.title }}" loading="lazy" decoding="async"></a>
             {% else %}
             <a href="{{ post.get_absolute_url }}" class="f66-card-media f66-media-fallback"><span>News</span></a>
             {% endif %}
@@ -55,10 +59,14 @@
               <a href="{{ post.get_absolute_url }}" class="f66-link">Читать</a>
               <span class="f66-rating">Рейтинг {{ post.rating }}</span>
             </div>
+            {% if user.is_authenticated %}
             <div class="reaction-row" data-post-id="{{ post.id }}">
-              <button class="reaction-btn {% if post.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like">👍 <span data-like-count>{{ post.likes_count|default:0 }}</span></button>
-              <button class="reaction-btn {% if post.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike">👎 <span data-dislike-count>{{ post.dislikes_count|default:0 }}</span></button>
+              <button type="button" class="reaction-btn {% if post.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like" aria-pressed="{% if post.user_reaction == 'like' %}true{% else %}false{% endif %}" aria-label="Лайк">👍 <span data-like-count>{{ post.likes_count|default:0 }}</span></button>
+              <button type="button" class="reaction-btn {% if post.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike" aria-pressed="{% if post.user_reaction == 'dislike' %}true{% else %}false{% endif %}" aria-label="Дизлайк">👎 <span data-dislike-count>{{ post.dislikes_count|default:0 }}</span></button>
             </div>
+            {% else %}
+            <a href="{% url 'account_login' %}?next={{ request.get_full_path|urlencode }}" class="f66-link">Войти, чтобы оценить</a>
+            {% endif %}
           </div>
         </article>
         {% endfor %}

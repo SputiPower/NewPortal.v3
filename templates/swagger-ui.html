@@ -1,21 +1,58 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NewsPortal API Docs</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
-</head>
-<body>
-  <div id="swagger-ui"></div>
-  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-  <script>
-    window.ui = SwaggerUIBundle({
-      url: "{% url 'openapi-schema' %}",
-      dom_id: '#swagger-ui',
-      presets: [SwaggerUIBundle.presets.apis],
-      layout: "BaseLayout"
-    });
-  </script>
-</body>
-</html>
+{% extends 'base.html' %}
+
+{% block title %}NewsSputi | API Docs{% endblock %}
+{% block body_class %}f66-body{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+<style>
+  .swagger-shell {
+    padding: 6.2rem 0 3rem;
+  }
+
+  .swagger-card {
+    border-radius: 28px;
+    overflow: hidden;
+  }
+
+  #swagger-ui {
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.76);
+  }
+
+  #swagger-ui .topbar {
+    display: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="f66-shell swagger-shell">
+  <section class="f66-section">
+    <div class="f66-container">
+      <header class="f66-section-head reveal-on-scroll">
+        <p class="f66-kicker">Developer</p>
+        <h2>API Documentation</h2>
+        <p class="f66-subtitle">OpenAPI-схема и интерактивная документация в общей визуальной системе сайта.</p>
+      </header>
+
+      <div class="glass-elevated swagger-card reveal-on-scroll">
+        <div id="swagger-ui"></div>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+<script>
+  window.ui = SwaggerUIBundle({
+    url: "{% url 'openapi-schema' %}",
+    dom_id: '#swagger-ui',
+    presets: [SwaggerUIBundle.presets.apis],
+    layout: 'BaseLayout'
+  });
+</script>
+{% endblock %}

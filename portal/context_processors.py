@@ -1,6 +1,6 @@
-from .models import Category
+from .utils import get_public_categories
 
 def categories_processor(request):
     return {
-        'categories': Category.objects.all()
+        'categories': get_public_categories()
     }

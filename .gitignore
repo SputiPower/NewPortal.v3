@@ -4,16 +4,24 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
 .env
 .env.local
 .env.*.local
 db.sqlite3
+db.sqlite3-journal
 .idea/
 .vscode/
 media/
 logs/
 cache_files/
 *.log
+*.tmp
+*.bak
 celerybeat-schedule
 celerybeat-schedule-shm
 celerybeat-schedule-wal
@@ -34,3 +42,6 @@ portal_content_with_users_utf8.json
 quick_portal_check.json
 sqlite_full_utf8.json
 utf8_probe.json
+
+# Local preview assets / experiments
+static/assets/home/

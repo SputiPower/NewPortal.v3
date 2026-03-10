@@ -158,7 +158,7 @@
                             • {{ post.created_at|date:"d.m.Y H:i" }}
                         </p>
                         <p class="preview">{{ post.preview }}</p>
-                        <a href="http://127.0.0.1:8000{{ post.get_absolute_url }}" class="action">Читать полностью</a>
+                        <a href="{{ site_base_url }}{{ post.get_absolute_url }}" class="action">Читать полностью</a>
                     </div>
                 {% endfor %}
             {% else %}
@@ -168,7 +168,7 @@
 
         <div class="footer">
             Это автоматическое письмо от NewsSputi. Пожалуйста, не отвечай на него.<br>
-            Управлять подписками можно в <a href="http://127.0.0.1:8000/">личном кабинете</a>.
+            Управлять подписками можно в <a href="{{ site_base_url }}/">личном кабинете</a>.
         </div>
     </div>
 </body>

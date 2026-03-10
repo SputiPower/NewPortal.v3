@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load moderation %}
 
 {% block title %}Perfect World - {{ ad.title }}{% endblock %}
 {% block body_class %}f66-body{% endblock %}
@@ -6,21 +7,21 @@
 {% block content %}
 <div class="f66-shell">
   <section class="f66-section">
-    <div class="f66-container" style="max-width: 960px;">
-      <section class="profile-card glass-elevated reveal-on-scroll">
-        <div class="form-head" style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+    <div class="f66-container f66-container-pw-detail">
+      <section class="profile-card glass-elevated reveal-on-scroll pw-board-shell">
+        <div class="form-head form-head-split">
           <div>
             <h2>{{ ad.title }}</h2>
             <p class="page-subtitle">{{ ad.get_category_display }} • {{ ad.author.username }} • {{ ad.created_at|date:"d.m.Y H:i" }}</p>
           </div>
           {% if user.is_authenticated and user.id == ad.author_id %}
-          <div class="form-actions" style="margin:0;">
+          <div class="form-actions form-actions-reset">
             <a href="{% url 'pw_ad_edit' ad.pk %}" class="f66-btn f66-btn-ghost">Редактировать</a>
             <a href="{% url 'pw_ad_delete' ad.pk %}" class="f66-btn f66-btn-ghost">Удалить</a>
           </div>
           {% endif %}
         </div>
-        <div style="margin-bottom:1.1rem;">{{ ad.content|safe }}</div>
+        <div class="pw-ad-richcopy">{{ ad.content|sanitize_rich_html }}</div>
 
         {% if user.is_authenticated and user.id != ad.author_id %}
         <form method="post" action="{% url 'pw_ad_response_create' ad.pk %}" class="post-form">
@@ -38,16 +39,16 @@
         <p class="page-subtitle">Чтобы оставить отклик, <a href="{% url 'pw_login' %}">войдите</a> в аккаунт.</p>
         {% endif %}
 
-        <hr>
+        <hr class="pw-divider">
         <h3>Отклики ({{ responses|length }})</h3>
         {% for r in responses %}
-        <article class="f66-card glass-elevated" style="margin-bottom:0.8rem;padding:0.9rem 1rem;">
-          <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+        <article class="f66-card glass-elevated pw-response-card">
+          <div class="pw-response-head">
             <strong>{{ r.author.username }}</strong>
             <span class="page-subtitle">{{ r.created_at|date:"d.m.Y H:i" }}</span>
           </div>
-          <p style="margin:.4rem 0 0;">{{ r.text }}</p>
-          {% if r.is_accepted %}<p style="margin:.35rem 0 0;color:#15803d;font-weight:700;">Принят</p>{% endif %}
+          <p class="pw-response-copy">{{ r.text }}</p>
+          {% if r.is_accepted %}<p class="pw-response-accepted">Принят</p>{% endif %}
         </article>
         {% empty %}
         <p class="page-subtitle">Пока откликов нет.</p>

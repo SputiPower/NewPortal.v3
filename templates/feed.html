@@ -6,7 +6,7 @@
 
 {% block content %}
 <div class="f66-shell">
-  <section class="f66-hero">
+  <section class="f66-hero f66-hero-compact">
     <div class="f66-hero-glow"></div>
     <div class="f66-container">
       <p class="f66-kicker reveal-on-scroll">Personal Feed</p>
@@ -27,9 +27,9 @@
         <article class="f66-news-card glass-elevated reveal-on-scroll tilt-card" data-tilt-card>
           {% with media_preview=item.media_files.first %}
             {% if item.image %}
-            <a href="{{ item.get_absolute_url }}" class="f66-card-media"><img src="{{ item.image.url }}" alt="{{ item.title|censor }}"></a>
+            <a href="{{ item.get_absolute_url }}" class="f66-card-media"><img src="{{ item.image.url }}" alt="{{ item.title|censor }}" loading="lazy" decoding="async"></a>
             {% elif media_preview %}
-            <a href="{{ item.get_absolute_url }}" class="f66-card-media"><img src="{{ media_preview.image.url }}" alt="{{ item.title|censor }}"></a>
+            <a href="{{ item.get_absolute_url }}" class="f66-card-media"><img src="{{ media_preview.image.url }}" alt="{{ item.title|censor }}" loading="lazy" decoding="async"></a>
             {% else %}
             <a href="{{ item.get_absolute_url }}" class="f66-card-media f66-media-fallback"><span>News</span></a>
             {% endif %}
@@ -42,10 +42,14 @@
               <a href="{{ item.get_absolute_url }}" class="f66-link">Читать</a>
               <span class="f66-rating">Рейтинг {{ item.rating }}</span>
             </div>
+            {% if user.is_authenticated %}
             <div class="reaction-row" data-post-id="{{ item.id }}">
-              <button class="reaction-btn {% if item.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like">👍 <span data-like-count>{{ item.likes_count|default:0 }}</span></button>
-              <button class="reaction-btn {% if item.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike">👎 <span data-dislike-count>{{ item.dislikes_count|default:0 }}</span></button>
+              <button type="button" class="reaction-btn {% if item.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like" aria-pressed="{% if item.user_reaction == 'like' %}true{% else %}false{% endif %}" aria-label="Лайк">👍 <span data-like-count>{{ item.likes_count|default:0 }}</span></button>
+              <button type="button" class="reaction-btn {% if item.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike" aria-pressed="{% if item.user_reaction == 'dislike' %}true{% else %}false{% endif %}" aria-label="Дизлайк">👎 <span data-dislike-count>{{ item.dislikes_count|default:0 }}</span></button>
             </div>
+            {% else %}
+            <a href="{% url 'account_login' %}?next={{ request.get_full_path|urlencode }}" class="f66-link">Войти, чтобы оценить</a>
+            {% endif %}
           </div>
         </article>
         {% empty %}

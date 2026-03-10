@@ -2,63 +2,64 @@
 {% load i18n account socialaccount static %}
 
 {% block title %}Вход{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<div class="form-wrapper">
-    <h2>Вход на сайт</h2>
+<div class="f66-shell">
+  <section class="f66-section f66-section-offset-top">
+    <div class="f66-container-auth">
+      <section class="profile-card glass-elevated reveal-on-scroll auth-card">
+        <h2>Вход на сайт</h2>
 
-    {% if form.non_field_errors %}
-        <div class="non-field-errors">{{ form.non_field_errors|striptags }}</div>
-    {% endif %}
+        {% if form.non_field_errors %}
+        <div class="alert-danger auth-alert">{{ form.non_field_errors|striptags }}</div>
+        {% endif %}
 
-    <form method="post" action="{% url 'account_login' %}" novalidate>
-        {% csrf_token %}
+        <form method="post" action="{% url 'account_login' %}" novalidate class="post-form auth-form">
+          {% csrf_token %}
 
-        <!-- Email / Username -->
-        <div class="input-wrapper">
+          <div class="form-field">
             {{ form.login }}
             <label for="{{ form.login.id_for_label }}">Email</label>
             {% if form.login.errors %}
-                <div class="error-message">{{ form.login.errors|striptags }}</div>
+            <span class="form-error">{{ form.login.errors|striptags }}</span>
             {% endif %}
-        </div>
+          </div>
 
-        <!-- Password -->
-        <div class="input-wrapper">
+          <div class="form-field auth-password-field">
             {{ form.password }}
             <label for="{{ form.password.id_for_label }}">Пароль</label>
-            <span class="show-password" onclick="togglePassword()">👁 Показать</span>
+            <button type="button" class="auth-password-toggle" data-password-toggle data-target="{{ form.password.id_for_label }}">Показать</button>
             {% if form.password.errors %}
-                <div class="error-message">{{ form.password.errors|striptags }}</div>
+            <span class="form-error">{{ form.password.errors|striptags }}</span>
             {% endif %}
-        </div>
+          </div>
 
-        <button type="submit">Войти</button>
-    </form>
+          <button type="submit" class="f66-btn f66-btn-primary">Войти</button>
+        </form>
 
-    <hr>
+        <p class="auth-muted auth-links">
+          <a href="{% url 'account_reset_password' %}">Забыли пароль?</a>
+        </p>
 
-    <!-- Социальные кнопки -->
-    {% get_providers as socialaccount_providers %}
-    {% if socialaccount_providers %}
-    <div class="social-buttons">
+        <hr class="pw-divider">
+
+        {% get_providers as socialaccount_providers %}
+        {% if socialaccount_providers %}
+        <div class="auth-social">
         {% for provider in socialaccount_providers %}
-            <a href="{% provider_login_url provider.id %}" class="{{ provider.id }}-btn" aria-label="Войти через {{ provider.name }}">
-                Войти через {{ provider.name }}
-            </a>
+          <a href="{% provider_login_url provider.id %}" class="auth-social-btn" aria-label="Войти через {{ provider.name }}">
+            Войти через {{ provider.name }}
+          </a>
         {% endfor %}
+        </div>
+        {% endif %}
+
+        <p class="auth-muted auth-links">
+          Нет аккаунта? <a href="{% url 'account_signup' %}">Зарегистрироваться</a>
+        </p>
+      </section>
     </div>
-    {% endif %}
-
-    <p class="footer-text">
-        Нет аккаунта? <a href="{% url 'account_signup' %}">Зарегистрироваться</a>
-    </p>
+  </section>
 </div>
-
-<script>
-function togglePassword() {
-    const input = document.querySelector('input[type="password"]');
-    if (input) input.type = input.type === "password" ? "text" : "password";
-}
-</script>
 {% endblock %}

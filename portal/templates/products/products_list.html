@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="f66-shell">
-  <section class="f66-hero">
+  <section class="f66-hero f66-hero-compact">
     <div class="f66-hero-glow"></div>
     <div class="f66-container">
       <p class="f66-kicker reveal-on-scroll">Marketplace</p>
@@ -28,7 +28,7 @@
         {% for product in products %}
         <article class="f66-news-card glass-elevated reveal-on-scroll tilt-card" data-tilt-card>
           {% if product.image %}
-          <a href="{% url 'product_detail' product.pk %}" class="f66-card-media"><img src="{{ product.image.url }}" alt="{{ product.name }}"></a>
+          <a href="{% url 'product_detail' product.pk %}" class="f66-card-media"><img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy" decoding="async"></a>
           {% else %}
           <a href="{% url 'product_detail' product.pk %}" class="f66-card-media f66-media-fallback"><span>Product</span></a>
           {% endif %}

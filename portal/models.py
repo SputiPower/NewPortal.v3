@@ -49,6 +49,15 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        result = super().save(*args, **kwargs)
+        cache.delete('portal:public-category-ids:v1')
+        return result
+
+    def delete(self, *args, **kwargs):
+        cache.delete('portal:public-category-ids:v1')
+        return super().delete(*args, **kwargs)
+
     class Meta:
         verbose_name = _('Категория')
         verbose_name_plural = _('Категории')
@@ -70,6 +79,12 @@ class Post(models.Model):
     text = models.TextField()
     rating = models.IntegerField(default=0)
     image = models.ImageField(upload_to='posts/', blank=True, null=True)
+    preview_video = models.FileField(
+        upload_to='posts/videos/',
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['mp4'])]
+    )
 
     categories = models.ManyToManyField(
         Category,

@@ -2,53 +2,59 @@
 {% load i18n account socialaccount static %}
 
 {% block title %}Регистрация{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<div class="form-wrapper">
-    <h2>Регистрация</h2>
+<div class="f66-shell">
+  <section class="f66-section f66-section-offset-top">
+    <div class="f66-container-auth">
+      <section class="profile-card glass-elevated reveal-on-scroll auth-card">
+        <h2>Регистрация</h2>
 
-    {% if form.non_field_errors %}
-        <div class="non-field-errors">{{ form.non_field_errors|striptags }}</div>
-    {% endif %}
+        {% if form.non_field_errors %}
+        <div class="alert-danger auth-alert">{{ form.non_field_errors|striptags }}</div>
+        {% endif %}
 
-    <form method="post" novalidate>
-        {% csrf_token %}
+        <form method="post" novalidate class="post-form auth-form">
+          {% csrf_token %}
 
-        {% for field in form %}
-            <div class="input-wrapper">
-                {{ field }}
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {% if field.errors %}
-                    <div class="error-message">{{ field.errors|striptags }}</div>
-                {% endif %}
-            </div>
-        {% endfor %}
-
-        <button type="submit">Зарегистрироваться</button>
-    </form>
-
-    <hr>
-
-    <!-- Соцкнопки -->
-    {% get_providers as socialaccount_providers %}
-    {% if socialaccount_providers %}
-    <div class="social-buttons">
-        {% for provider in socialaccount_providers %}
-            {% if provider.id == "google" %}
-                <a href="{% provider_login_url 'google' %}" class="google-btn" aria-label="Регистрация через Google">
-                    Зарегистрироваться через Google
-                </a>
-            {% elif provider.id == "yandex" %}
-                <a href="{% provider_login_url 'yandex' %}" class="yandex-btn" aria-label="Регистрация через Яндекс">
-                    Зарегистрироваться через Яндекс
-                </a>
+          {% for field in form %}
+          <div class="form-field">
+            {{ field }}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {% if field.errors %}
+            <span class="form-error">{{ field.errors|striptags }}</span>
             {% endif %}
-        {% endfor %}
-    </div>
-    {% endif %}
+          </div>
+          {% endfor %}
 
-    <p class="footer-text">
-        Уже есть аккаунт? <a href="{% url 'account_login' %}">Войти</a>
-    </p>
+          <button type="submit" class="f66-btn f66-btn-primary">Зарегистрироваться</button>
+        </form>
+
+        <hr class="pw-divider">
+
+        {% get_providers as socialaccount_providers %}
+        {% if socialaccount_providers %}
+        <div class="auth-social">
+        {% for provider in socialaccount_providers %}
+          {% if provider.id == "google" %}
+          <a href="{% provider_login_url 'google' %}" class="auth-social-btn" aria-label="Регистрация через Google">
+            Зарегистрироваться через Google
+          </a>
+          {% elif provider.id == "yandex" %}
+          <a href="{% provider_login_url 'yandex' %}" class="auth-social-btn" aria-label="Регистрация через Яндекс">
+            Зарегистрироваться через Яндекс
+          </a>
+          {% endif %}
+        {% endfor %}
+        </div>
+        {% endif %}
+
+        <p class="auth-muted auth-links">
+          Уже есть аккаунт? <a href="{% url 'account_login' %}">Войти</a>
+        </p>
+      </section>
+    </div>
+  </section>
 </div>
 {% endblock %}

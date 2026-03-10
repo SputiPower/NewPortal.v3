@@ -1,5 +1,6 @@
 (function () {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const allowTilt = !reduceMotion && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   const revealTargets = document.querySelectorAll('.reveal-on-scroll');
   if (revealTargets.length) {
@@ -32,6 +33,7 @@
   if (!reduceMotion) {
     const hero = document.querySelector('.f66-hero');
     const heroGlow = document.querySelector('.f66-hero-glow');
+    let parallaxScheduled = false;
 
     const updateParallax = () => {
       if (!hero || !heroGlow) return;
@@ -39,27 +41,34 @@
       const progress = Math.max(-1, Math.min(1, rect.top / window.innerHeight));
       const y = progress * -28;
       heroGlow.style.transform = `translate3d(0, ${y}px, 0)`;
+      parallaxScheduled = false;
     };
 
     updateParallax();
-    window.addEventListener('scroll', updateParallax, { passive: true });
+    window.addEventListener('scroll', () => {
+      if (parallaxScheduled) return;
+      parallaxScheduled = true;
+      requestAnimationFrame(updateParallax);
+    }, { passive: true });
 
-    const tiltCards = document.querySelectorAll('[data-tilt-card]');
-    tiltCards.forEach((card) => {
-      card.addEventListener('mousemove', (event) => {
-        const r = card.getBoundingClientRect();
-        const x = (event.clientX - r.left) / r.width;
-        const y = (event.clientY - r.top) / r.height;
+    if (allowTilt) {
+      const tiltCards = document.querySelectorAll('[data-tilt-card]');
+      tiltCards.forEach((card) => {
+        card.addEventListener('mousemove', (event) => {
+          const r = card.getBoundingClientRect();
+          const x = (event.clientX - r.left) / r.width;
+          const y = (event.clientY - r.top) / r.height;
 
-        const rotateY = (x - 0.5) * 7;
-        const rotateX = (0.5 - y) * 7;
-        card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+          const rotateY = (x - 0.5) * 7;
+          const rotateX = (0.5 - y) * 7;
+          card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+        });
+
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)';
+        });
       });
-
-      card.addEventListener('mouseleave', () => {
-        card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)';
-      });
-    });
+    }
   }
 
   function getCookie(name) {
@@ -76,6 +85,19 @@
     '';
   const reactionRows = document.querySelectorAll('.reaction-row[data-post-id]');
 
+  const passwordToggles = document.querySelectorAll('[data-password-toggle]');
+  passwordToggles.forEach((toggle) => {
+    toggle.addEventListener('click', () => {
+      const targetId = toggle.getAttribute('data-target');
+      const input = targetId ? document.getElementById(targetId) : null;
+      if (!input) return;
+      const nextType = input.type === 'password' ? 'text' : 'password';
+      input.type = nextType;
+      toggle.textContent = nextType === 'password' ? 'Показать' : 'Скрыть';
+      toggle.setAttribute('aria-pressed', nextType === 'text' ? 'true' : 'false');
+    });
+  });
+
   reactionRows.forEach((row) => {
     const postId = row.dataset.postId;
     const buttons = row.querySelectorAll('[data-react-btn]');
@@ -85,18 +107,31 @@
     buttons.forEach((button) => {
       button.addEventListener('click', async (event) => {
         event.preventDefault();
+        if (row.dataset.pending === 'true') return;
         const reactionType = button.dataset.reaction;
+        row.dataset.pending = 'true';
+        row.setAttribute('aria-busy', 'true');
+        buttons.forEach((item) => { item.disabled = true; });
 
         try {
           const response = await fetch(`/posts/${postId}/react/`, {
             method: 'POST',
             headers: {
               'X-CSRFToken': csrfToken,
+              'Accept': 'application/json',
               'X-Requested-With': 'XMLHttpRequest',
               'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
             },
             body: new URLSearchParams({ reaction_type: reactionType }),
           });
+
+          if (response.status === 401) {
+            const data = await response.json().catch(() => null);
+            if (data?.login_url) {
+              window.location.href = data.login_url;
+            }
+            return;
+          }
 
           if (!response.ok) {
             return;
@@ -107,10 +142,14 @@
             return;
           }
 
-          buttons.forEach((item) => item.classList.remove('is-active'));
+          buttons.forEach((item) => {
+            item.classList.remove('is-active');
+            item.setAttribute('aria-pressed', 'false');
+          });
           const activeBtn = row.querySelector(`[data-reaction="${data.reaction}"]`);
           if (activeBtn) {
             activeBtn.classList.add('is-active');
+            activeBtn.setAttribute('aria-pressed', 'true');
             activeBtn.classList.remove('pulse');
             requestAnimationFrame(() => activeBtn.classList.add('pulse'));
           }
@@ -119,6 +158,10 @@
           if (dislikeCounter) dislikeCounter.textContent = data.dislikes_count;
         } catch (error) {
           // ignore network errors on client side
+        } finally {
+          row.dataset.pending = 'false';
+          row.setAttribute('aria-busy', 'false');
+          buttons.forEach((item) => { item.disabled = false; });
         }
       });
     });

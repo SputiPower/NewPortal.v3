@@ -1,343 +1,73 @@
 {% extends 'base.html' %}
-{% load static %}
-{% load simpleapp_tags %}
 
-{% block title %}Каталог товаров{% endblock %}
+{% block title %}NewsSputi | Каталог товаров{% endblock %}
+{% block body_class %}f66-body{% endblock %}
 
 {% block content %}
-<div class="products-wrapper">
-    <h1 class="main-title">🛍️ Каталог товаров</h1>
+<div class="f66-shell">
+  <section class="f66-hero f66-hero-compact">
+    <div class="f66-hero-glow"></div>
+    <div class="f66-container">
+      <p class="f66-kicker reveal-on-scroll">Marketplace</p>
+      <h1 class="f66-title reveal-on-scroll">Каталог товаров</h1>
+      <p class="f66-subtitle reveal-on-scroll">Подборка товаров и категорий в едином аккуратном интерфейсе, без выпадения из общего визуального языка сайта.</p>
+      <div class="f66-actions reveal-on-scroll">
+        <a href="{% url 'product_create' %}" class="f66-btn f66-btn-primary">Добавить товар</a>
+      </div>
+    </div>
+  </section>
 
-    {# ===== ФИЛЬТРЫ ===== #}
-    <div class="filter-section">
-        <h3 class="filter-title">🔍 Фильтры</h3>
-        <form method="get" class="filter-form">
-            {{ filterset.form.as_p }}
-            <button type="submit" class="btn-filter">Применить</button>
+  <section class="f66-section">
+    <div class="f66-container">
+      <div class="panel glass-elevated reveal-on-scroll">
+        <form method="get" class="filter-form-premium">
+          {{ filterset.form.as_p }}
+          <button type="submit" class="f66-btn f66-btn-primary">Применить</button>
         </form>
-    </div>
+      </div>
 
-    {# ===== СЕТКА ТОВАРОВ ===== #}
-    {% if products %}
-    <div class="products-grid">
+      {% if products %}
+      <div class="f66-news-grid">
         {% for product in products %}
-        <div class="product-card">
-            <div class="product-image">
-                <img src="{% static 'img/product-placeholder.png' %}" alt="{{ product.name }}">
-                {% if product.is_featured %}
-                <span class="badge-featured">⭐ Хит</span>
-                {% endif %}
+        <article class="f66-news-card glass-elevated reveal-on-scroll tilt-card" data-tilt-card>
+          <a href="{% url 'product_detail' product.pk %}" class="f66-card-media f66-media-fallback" aria-label="Открыть товар {{ product.name }}">
+            <span>{{ product.category.name }}</span>
+          </a>
+          <div class="f66-card-body">
+            <p class="f66-meta">{{ product.category.name }}</p>
+            <h3><a href="{% url 'product_detail' product.pk %}">{{ product.name }}</a></h3>
+            <p>{{ product.description|truncatechars:150 }}</p>
+            <div class="chips">
+              <span class="chip">Количество: {{ product.quantity }}</span>
+              <span class="chip">Цена: {{ product.price|floatformat:2 }} ₽</span>
             </div>
-
-            <div class="product-body">
-                <h3 class="product-name">{{ product.name }}</h3>
-                
-                <p class="product-category">📁 {{ product.category.name }}</p>
-                
-                <p class="product-description">{{ product.description|truncatechars:70 }}</p>
-
-                <div class="product-meta">
-                    <span class="product-price">{{ product.price|floatformat:2 }} ₽</span>
-                    <span class="product-rating">⭐ {{ product.rating|default:0 }}</span>
-                </div>
-
-                <div class="product-footer">
-                    <span class="product-stock">📦 {{ product.quantity }} шт.</span>
-                    <a href="{% url 'product_detail' product.id %}" class="btn-read-more">Подробнее →</a>
-                </div>
+            <div class="f66-card-footer">
+              <a href="{% url 'product_detail' product.pk %}" class="f66-link">Подробнее</a>
+              <span class="f66-rating">ID {{ product.pk }}</span>
             </div>
-        </div>
+          </div>
+        </article>
         {% endfor %}
-    </div>
-    {% else %}
-        <div class="empty-products">
-            <p>📭 Товаров не найдено</p>
-        </div>
-    {% endif %}
+      </div>
+      {% else %}
+      <div class="f66-empty glass-elevated reveal-on-scroll">
+        <h3>Товары не найдены</h3>
+        <p>Попробуйте изменить фильтры или добавьте новый товар.</p>
+      </div>
+      {% endif %}
 
-    {# ===== ПАГИНАЦИЯ ===== #}
-    {% if page_obj.has_other_pages %}
-    <nav class="pagination-block">
+      {% if is_paginated %}
+      <nav class="pagination-premium" aria-label="Пагинация">
         {% if page_obj.has_previous %}
-            <a href="?{% url_replace page=page_obj.previous_page_number %}" class="pagination-link">← Назад</a>
-        {% else %}
-            <span class="pagination-link disabled">← Назад</span>
+          <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}">Назад</a>
         {% endif %}
-
-        <span class="pagination-info">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
-
+        <span>{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
         {% if page_obj.has_next %}
-            <a href="?{% url_replace page=page_obj.next_page_number %}" class="pagination-link">Вперед →</a>
-        {% else %}
-            <span class="pagination-link disabled">Вперед →</span>
+          <a href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}">Вперёд</a>
         {% endif %}
-    </nav>
-    {% endif %}
+      </nav>
+      {% endif %}
+    </div>
+  </section>
 </div>
-
-<style>
-    .products-wrapper {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 20px;
-        font-family: 'Inter', sans-serif;
-    }
-
-    .main-title {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 30px;
-    }
-
-    /* Фильтры */
-    .filter-section {
-        background: #f8fafc;
-        padding: 24px;
-        border-radius: 12px;
-        margin-bottom: 40px;
-        border: 1px solid #e2e8f0;
-    }
-
-    .filter-title {
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: #1e293b;
-        margin-bottom: 16px;
-    }
-
-    .filter-form {
-        display: flex;
-        gap: 16px;
-        flex-wrap: wrap;
-        align-items: flex-end;
-    }
-
-    .filter-form p {
-        margin: 0;
-        flex: 1;
-        min-width: 200px;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .filter-form label {
-        font-weight: 600;
-        color: #1e293b;
-        margin-bottom: 6px;
-        font-size: 0.9rem;
-    }
-
-    .filter-form input,
-    .filter-form select {
-        padding: 10px 12px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        transition: border-color 0.3s;
-    }
-
-    .filter-form input:focus,
-    .filter-form select:focus {
-        outline: none;
-        border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-
-    .btn-filter {
-        background: #2563eb;
-        color: white;
-        border: none;
-        padding: 10px 24px;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s;
-        align-self: flex-end;
-    }
-
-    .btn-filter:hover {
-        background: #1e40af;
-        transform: translateY(-2px);
-    }
-
-    /* Сетка товаров */
-    .products-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 24px;
-        margin-bottom: 40px;
-    }
-
-    .product-card {
-        background: #1e293b;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-        border: 1px solid #334155;
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-    }
-
-    .product-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 30px rgba(37, 99, 235, 0.15);
-        border-color: #2563eb;
-    }
-
-    .product-image {
-        position: relative;
-        width: 100%;
-        height: 200px;
-        overflow: hidden;
-        background: linear-gradient(135deg, #2563eb, #1e40af);
-    }
-
-    .product-image img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .badge-featured {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        background: linear-gradient(135deg, #fbbf24, #f59e0b);
-        color: #1e293b;
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-weight: 700;
-        font-size: 0.85rem;
-    }
-
-    .product-body {
-        padding: 20px;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .product-name {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #3b82f6;
-        margin: 0 0 8px 0;
-    }
-
-    .product-category {
-        color: #94a3b8;
-        font-size: 0.9rem;
-        margin: 0 0 12px 0;
-    }
-
-    .product-description {
-        color: #cbd5e1;
-        font-size: 0.9rem;
-        line-height: 1.5;
-        margin-bottom: 16px;
-        flex: 1;
-    }
-
-    .product-meta {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 0;
-        border-top: 1px solid #334155;
-        border-bottom: 1px solid #334155;
-        margin-bottom: 16px;
-    }
-
-    .product-price {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #10b981;
-    }
-
-    .product-rating {
-        color: #fbbf24;
-        font-weight: 600;
-    }
-
-    .product-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .product-stock {
-        color: #94a3b8;
-        font-size: 0.9rem;
-    }
-
-    .btn-read-more {
-        color: #60a5fa;
-        text-decoration: none;
-        font-weight: 600;
-        transition: color 0.3s;
-    }
-
-    .btn-read-more:hover {
-        color: #3b82f6;
-    }
-
-    .empty-products {
-        text-align: center;
-        padding: 60px 20px;
-        color: #94a3b8;
-        font-size: 1.1rem;
-    }
-
-    /* Пагинация */
-    .pagination-block {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 20px;
-        padding: 30px;
-        background-color: #f8fafc;
-        border-radius: 12px;
-        flex-wrap: wrap;
-    }
-
-    .pagination-link {
-        color: #2563eb;
-        text-decoration: none;
-        font-weight: 600;
-        padding: 10px 18px;
-        border-radius: 8px;
-        transition: all 0.3s;
-        border: 2px solid #2563eb;
-    }
-
-    .pagination-link:hover:not(.disabled) {
-        background-color: #2563eb;
-        color: white;
-        transform: translateY(-2px);
-    }
-
-    .pagination-link.disabled {
-        color: #cbd5e1;
-        border-color: #cbd5e1;
-        cursor: not-allowed;
-    }
-
-    .pagination-info {
-        color: #64748b;
-        font-weight: 600;
-    }
-
-    @media (max-width: 768px) {
-        .main-title { font-size: 1.8rem; }
-        .products-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
-        .filter-form { flex-direction: column; }
-        .filter-form p { width: 100%; }
-        .btn-filter { width: 100%; }
-        .pagination-block { gap: 10px; }
-    }
-</style>
 {% endblock %}
-

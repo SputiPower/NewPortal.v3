@@ -6,19 +6,19 @@
 {% block content %}
 <div class="f66-shell">
   <section class="f66-section">
-    <div class="f66-container" style="max-width: 1060px;">
+    <div class="f66-container-pw-detail">
       <section class="profile-card glass-elevated reveal-on-scroll">
-        <div class="form-head" style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+        <div class="form-head-split">
           <div>
             <h2>Отклики на мои объявления</h2>
             <p class="page-subtitle">Фильтруйте отклики по объявлению, принимайте или удаляйте их.</p>
           </div>
-          <div class="form-actions" style="margin:0;">
+          <div class="form-actions form-actions-reset">
             <a href="{% url 'pw_ad_list' %}" class="f66-btn f66-btn-ghost">К доске</a>
           </div>
         </div>
 
-        <form method="get" class="post-form" style="margin-bottom:1rem;">
+        <form method="get" class="post-form pw-filter-form">
           <div class="form-field">
             <label for="id_ad">Объявление</label>
             <select id="id_ad" class="form-select" name="ad">
@@ -36,23 +36,23 @@
         </form>
 
         {% for r in responses %}
-        <article class="f66-card glass-elevated" style="margin-bottom:1rem;padding:1rem 1.1rem;">
-          <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+        <article class="f66-card glass-elevated pw-response-card">
+          <div class="pw-response-head">
             <div>
               <strong>{{ r.author.username }}</strong>
               <div class="page-subtitle">{{ r.ad.title }}</div>
             </div>
             <div class="page-subtitle">{{ r.created_at|date:"d.m.Y H:i" }}</div>
           </div>
-          <p style="margin:.65rem 0;">{{ r.text }}</p>
-          <div class="form-actions" style="margin:0;">
+          <p class="pw-response-copy">{{ r.text }}</p>
+          <div class="form-actions form-actions-reset">
             {% if not r.is_accepted %}
             <form method="post" action="{% url 'pw_response_accept' r.pk %}">
               {% csrf_token %}
               <button class="f66-btn f66-btn-primary" type="submit">Принять</button>
             </form>
             {% else %}
-            <span style="color:#15803d;font-weight:700;align-self:center;">Принят</span>
+            <span class="pw-response-accepted">Принят</span>
             {% endif %}
             <form method="post" action="{% url 'pw_response_delete' r.pk %}">
               {% csrf_token %}

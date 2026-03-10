@@ -3,6 +3,97 @@
 
 {% block title %}{{ news_item.title }}{% endblock %}
 {% block body_class %}f66-body{% endblock %}
+{% block extra_head %}
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+  .race-report,
+  .race-report p,
+  .race-report li,
+  .race-report span,
+  .race-report strong,
+  .race-report button,
+  .race-report input {
+    font-family: 'Inter', 'Manrope', system-ui, sans-serif;
+  }
+
+  .race-report h2,
+  .race-report h3,
+  .race-report .race-eyebrow,
+  .race-report .report-label,
+  .race-report .story-kicker,
+  .race-report .stat-card strong,
+  .race-report .fight-night-chip strong {
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  }
+
+  .report-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    color: #8ca4cf;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .report-label::before {
+    content: "";
+    width: 28px;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #ff855f, #4f8dff);
+  }
+
+  .race-report .f66-inline-gallery {
+    margin-top: 0;
+  }
+
+  .race-report .f66-inline-media {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .race-report .f66-inline-media img {
+    height: 240px;
+    object-fit: contain;
+    background: linear-gradient(180deg, rgba(8, 12, 20, 0.92), rgba(13, 17, 27, 0.96));
+    padding: 0.6rem;
+  }
+
+  .race-report .story-kicker {
+    color: #ff9b7f;
+  }
+
+  .race-report .story-body p {
+    color: rgba(233, 238, 246, 0.92) !important;
+  }
+
+  .race-report .story-body p:first-child {
+    color: #ffffff !important;
+  }
+
+  .race-report .fight-night-strip,
+  .race-report .fight-night-layout,
+  .race-report .story-side {
+    margin-top: 0;
+  }
+
+  .race-report [data-chart-field-delta],
+  .race-report [data-chart-progress],
+  .race-report [data-chart-pace],
+  .race-report [data-chart-workload],
+  .race-report [data-chart-heatmap],
+  .race-report [data-track-map] {
+    margin-top: 0.9rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+</style>
+{% endblock %}
 
 {% block content %}
 <article class="f66-detail-shell">
@@ -10,10 +101,12 @@
     <div class="f66-detail-overlay"></div>
 
     {% with media_preview=news_item.media_files.first %}
-      {% if news_item.image %}
-      <img class="f66-detail-hero-image" src="{{ news_item.image.url }}" alt="{{ news_item.title }}">
+      {% if news_item.preview_video %}
+      <video class="f66-detail-hero-image" src="{{ news_item.preview_video.url }}" autoplay muted loop playsinline preload="metadata" aria-label="{{ news_item.title }}"></video>
+      {% elif news_item.image %}
+      <img class="f66-detail-hero-image" src="{{ news_item.image.url }}" alt="{{ news_item.title }}" fetchpriority="high">
       {% elif media_preview %}
-      <img class="f66-detail-hero-image" src="{{ media_preview.image.url }}" alt="{{ news_item.title }}">
+      <img class="f66-detail-hero-image" src="{{ media_preview.image.url }}" alt="{{ news_item.title }}" fetchpriority="high">
       {% else %}
       <div class="f66-detail-hero-image f66-media-fallback"><span>News</span></div>
       {% endif %}
@@ -22,35 +115,296 @@
     <div class="f66-detail-headline">
       <p class="f66-kicker">NewsSputi • Новость</p>
       <h1>{{ news_item.title|censor }}</h1>
+      {% if hero_subtitle %}
+      <p class="hero-subtitle">{{ hero_subtitle }}</p>
+      {% endif %}
       <p class="f66-detail-meta">{{ news_item.created_at|date:"d.m.Y H:i" }} • {{ news_item.author.user.username }} • Рейтинг {{ news_item.rating }}</p>
     </div>
   </header>
 
   <div class="f66-container f66-detail-content-wrap">
+    {% if mount_report %}
+    <div class="race-report">
+      <section class="race-panel race-intro reveal-on-scroll">
+        <div class="race-summary">
+          <div class="race-eyebrow">Special Report • Sport / iRacing</div>
+          <h2>Vodka Player на Bathurst 12 Hour</h2>
+          <p>Спецматериал по выступлению команды на Mount Panorama: результат, pace profile, дельта позиций по полю, вклад каждого пилота и telemetry-style аналитика на основе реального CSV-результата гонки.</p>
+        </div>
+        <div class="race-meta-grid">
+          <div class="race-meta-card"><span>Трек</span><strong>{{ mount_report.meta.track }}</strong></div>
+          <div class="race-meta-card"><span>Эвент</span><strong>{{ mount_report.meta.series }}</strong></div>
+          <div class="race-meta-card"><span>Команда</span><strong>{{ mount_report.team.name }}</strong></div>
+          <div class="race-meta-card"><span>SOF</span><strong>{{ mount_report.meta.sof }}</strong></div>
+        </div>
+      </section>
+
+      <section class="race-panel chart-card reveal-on-scroll">
+        <div class="report-label">Введение</div>
+        <p>12 Hours of Mount Panorama в iRacing — это гонка, где результат складывается не из одного быстрого круга, а из темпа, дисциплины, смен пилотов и умения пережить трафик Bathurst. Для Vodka Player этот спецэвент стал историей камбэка, выносливости и аккуратной работы на длинной дистанции.</p>
+      </section>
+
+      <section class="stats-grid reveal-on-scroll" aria-label="Ключевые метрики">
+        <article class="stat-card"><span>Итог</span><strong>P{{ mount_report.team.finish_pos }}</strong><p>После старта с P{{ mount_report.team.start_pos }}</p></article>
+        <article class="stat-card"><span>Прогресс</span><strong>+{{ mount_report.team.position_gain }}</strong><p>Отыгранные позиции по итоговой классификации</p></article>
+        <article class="stat-card"><span>Лучший круг</span><strong>{{ mount_report.team.best_lap }}</strong><p>Абсолютный максимум скорости команды</p></article>
+        <article class="stat-card"><span>Средний темп</span><strong>{{ mount_report.team.average_lap }}</strong><p>Средний lap time по итогам всей дистанции</p></article>
+        <article class="stat-card"><span>Круги</span><strong>{{ mount_report.team.laps_completed }}</strong><p>Полная дистанция команды</p></article>
+        <article class="stat-card"><span>Инциденты</span><strong>{{ mount_report.team.incidents }}</strong><p>Incident points за 12 часов гонки</p></article>
+      </section>
+
+      {% if news_item.media_files.all %}
+      <section class="f66-inline-gallery reveal-on-scroll" aria-label="Галерея изображений">
+        {% for media in news_item.media_files.all %}
+        <figure class="f66-inline-media glass-elevated" data-lightbox-trigger data-image-src="{{ media.image.url }}" data-image-alt="График {{ forloop.counter }}">
+          <img src="{{ media.image.url }}" alt="PNG {{ forloop.counter }}" loading="lazy" decoding="async">
+        </figure>
+        {% endfor %}
+      </section>
+      {% endif %}
+
+      <section class="analytics-grid reveal-on-scroll">
+        <article class="chart-card">
+          <div class="section-heading">
+            <h3>Динамика по полю</h3>
+            <p>Старт против финиша</p>
+          </div>
+          <h3>Position Delta Across The Field</h3>
+          <p>Сравнение стартовой и итоговой позиции всех команд GT3. Vodka Player выделена отдельно.</p>
+          <svg viewBox="0 0 760 360" data-chart-field-delta></svg>
+        </article>
+        <article class="chart-card">
+          <div class="section-heading">
+            <h3>Ход гонки</h3>
+            <p>Прогресс по дистанции</p>
+          </div>
+          <h3>Position Progression</h3>
+          <p>Динамика выступления команды по дистанции: стартовая точка, фаза отыгрыша позиций и выход на итоговый результат.</p>
+          <svg viewBox="0 0 760 360" data-chart-progress></svg>
+        </article>
+        <article class="chart-card">
+          <div class="section-heading">
+            <h3>Анализ темпа</h3>
+            <p>Средний ритм и лучший круг</p>
+          </div>
+          <h3>Driver Pace Comparison</h3>
+          <p>Средний lap time и best lap по каждому пилоту команды.</p>
+          <svg viewBox="0 0 760 360" data-chart-pace></svg>
+        </article>
+        <article class="chart-card">
+          <div class="section-heading">
+            <h3>Статистика кругов</h3>
+            <p>Нагрузка и incident points</p>
+          </div>
+          <h3>Workload vs Incidents</h3>
+          <p>Сколько проехал каждый пилот и как распределились incident points по составу.</p>
+          <svg viewBox="0 0 760 360" data-chart-workload></svg>
+        </article>
+      </section>
+
+      <section class="race-story-grid reveal-on-scroll">
+        <article class="race-panel race-copy">
+          <div class="report-label">История гонки</div>
+          <div class="story-kicker">Race Story</div>
+          <div class="f66-typography story-body">{{ news_item.text|render_post_text|censor|linebreaks }}</div>
+        </article>
+        <aside class="race-side-stack">
+          <section class="timeline-card">
+            <div class="report-label">Ключевые моменты</div>
+            <h3>Ключевые моменты</h3>
+            <ul class="timeline-list">
+              {% for point in mount_report.story_points %}
+              <li>
+                <small>{{ point.phase }}</small>
+                <b>{{ point.headline }}</b>
+                <span>{{ point.text }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+          </section>
+          <section class="timeline-card">
+            <div class="report-label">Race Animator</div>
+            <h3>Race Animator</h3>
+            <p>Пошаговый просмотр модели хода гонки по кругам. Карточки и индикатор ниже обновляются синхронно.</p>
+            <div class="timeline-controls">
+              <button type="button" class="lightbox-btn" data-race-play aria-label="Воспроизвести">▶</button>
+              <input type="range" min="0" max="{{ mount_report.team.laps_completed }}" step="4" value="0" data-race-slider aria-label="Прогресс гонки по кругам">
+            </div>
+            <div class="telemetry-readout">
+              <div><span>Lap</span><strong data-race-lap>0</strong></div>
+              <div><span>Modeled Position</span><strong data-race-position>P{{ mount_report.team.start_pos }}</strong></div>
+              <div><span>Best Lap</span><strong>{{ mount_report.team.best_lap }}</strong></div>
+              <div><span>Finish Target</span><strong>P{{ mount_report.team.finish_pos }}</strong></div>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <section class="telemetry-grid reveal-on-scroll">
+        <article class="telemetry-card">
+          <div class="report-label">Анализ данных</div>
+          <h3>Driver Heatmap</h3>
+          <p>Heatmap по пилотам: дистанция, средний темп, лучший круг и incident profile по каждому участнику состава.</p>
+          <svg viewBox="0 0 760 320" data-chart-heatmap></svg>
+        </article>
+        <article class="map-card">
+          <div class="report-label">Mount Panorama</div>
+          <h3>Mount Panorama Map</h3>
+          <p>Схематичная track map с ключевыми зонами, которые обычно определяют ритм гонки на Bathurst.</p>
+          <div class="track-map-shell" data-track-open role="button" tabindex="0" aria-label="Открыть карту трассы Mount Panorama">
+            <svg viewBox="0 0 760 420" data-track-map></svg>
+          </div>
+          <div class="track-hotspots">
+            {% for point in mount_report.track_points %}
+            <div><i></i><span><strong>{{ forloop.counter }}. {{ point.label }}</strong><small>Ключевая точка трассы</small></span></div>
+            {% endfor %}
+          </div>
+        </article>
+      </section>
+
+      <div class="track-modal" data-track-modal aria-hidden="true">
+        <div class="track-modal-stage">
+          <button type="button" class="lightbox-btn track-modal-close" data-track-close aria-label="Закрыть карту">×</button>
+          <div class="track-modal-grid">
+            <div class="track-modal-visual">
+              <div class="track-modal-canvas" data-track-canvas>
+                <div class="track-modal-transform" data-track-transform>
+                  <svg viewBox="0 0 760 420" data-track-map-expanded></svg>
+                </div>
+              </div>
+            </div>
+            <aside class="track-modal-sidebar">
+              <div>
+                <div class="track-modal-kicker">Track Inspection Mode</div>
+                <h3 class="track-modal-title">Mount Panorama 3D View</h3>
+              </div>
+              <p class="track-modal-copy">Полноэкранный режим карты с pseudo-3D наклоном, зумом, glow-подсветкой секторов и чистой broadcast-легендой по всем ключевым точкам трассы.</p>
+              <div class="track-modal-toolbar">
+                <button type="button" class="lightbox-btn" data-track-zoom-in aria-label="Увеличить карту">+</button>
+                <button type="button" class="lightbox-btn" data-track-zoom-out aria-label="Уменьшить карту">−</button>
+                <button type="button" class="lightbox-btn" data-track-reset aria-label="Сбросить карту">↺</button>
+              </div>
+              <div class="track-modal-pills">
+                <div class="track-modal-pill"><span>Track</span><strong>{{ mount_report.meta.track }}</strong></div>
+                <div class="track-modal-pill"><span>Layout</span><strong>Bathurst 12H broadcast map</strong></div>
+                <div class="track-modal-pill"><span>Reference</span><strong>10 numbered points</strong></div>
+              </div>
+              <div class="track-modal-sectors">
+                <div class="track-sector-card">
+                  <i class="track-sector-dot track-sector-dot-1"></i>
+                  <div><b>Sector 1</b><small>Стартовый подъем и ранний разгон: от Hell Corner до подхода к Skyline.</small></div>
+                </div>
+                <div class="track-sector-card">
+                  <i class="track-sector-dot track-sector-dot-2"></i>
+                  <div><b>Sector 2</b><small>Верхняя часть горы, где особенно важны дисциплина траектории и стабильность машины.</small></div>
+                </div>
+                <div class="track-sector-card">
+                  <i class="track-sector-dot track-sector-dot-3"></i>
+                  <div><b>Sector 3</b><small>Спуск и скоростной выход на длинные прямые, где ошибка особенно дорого стоит.</small></div>
+                </div>
+              </div>
+              <div class="track-modal-legend">
+                {% for point in mount_report.track_points %}
+                <div><strong>{{ forloop.counter }}</strong>{{ point.label }}</div>
+                {% endfor %}
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+
+      <div class="lightbox-modal" data-lightbox-modal aria-hidden="true">
+        <div class="lightbox-stage">
+          <div class="lightbox-toolbar">
+            <button type="button" class="lightbox-btn" data-lightbox-zoom-in aria-label="Увеличить">+</button>
+            <button type="button" class="lightbox-btn" data-lightbox-zoom-out aria-label="Уменьшить">−</button>
+            <button type="button" class="lightbox-btn" data-lightbox-reset aria-label="Сбросить">↺</button>
+            <button type="button" class="lightbox-btn" data-lightbox-close aria-label="Закрыть">×</button>
+          </div>
+          <div class="lightbox-viewport" data-lightbox-viewport>
+            <img class="lightbox-image" data-lightbox-image src="" alt="">
+          </div>
+        </div>
+      </div>
+
+      <section class="race-panel chart-card reveal-on-scroll">
+        <div class="report-label">Итог выступления</div>
+        <p>Для Vodka Player этот выезд в Bathurst закончился не просто финишем, а полноценным data-driven результатом: старт с P46, финиш на P22, 324 круга, +24 позиции и подтверждение того, что даже без доминирования по чистой скорости команда может собрать сильную 12-часовую дистанцию за счет темпа, устойчивости и дисциплины.</p>
+      </section>
+    </div>
+    {{ mount_report|json_script:"mount-report-data" }}
+    {% else %}
+    <section class="fight-night-strip reveal-on-scroll" aria-label="Ключевая информация">
+      {% for item in story_strip_items %}
+      <div class="fight-night-chip">
+        <span>{{ item.label }}</span>
+        <strong>{{ item.value }}</strong>
+      </div>
+      {% endfor %}
+    </section>
+
     {% if news_item.media_files.all %}
     <section class="f66-inline-gallery reveal-on-scroll" aria-label="Галерея изображений">
       {% for media in news_item.media_files.all %}
-      <figure class="f66-inline-media glass-elevated">
-        <img src="{{ media.image.url }}" alt="PNG {{ forloop.counter }}">
+      <figure class="f66-inline-media glass-elevated" data-lightbox-trigger data-image-src="{{ media.image.url }}" data-image-alt="График {{ forloop.counter }}">
+        <img src="{{ media.image.url }}" alt="PNG {{ forloop.counter }}" loading="lazy" decoding="async">
       </figure>
       {% endfor %}
     </section>
     {% endif %}
 
-    <section class="f66-detail-content glass-elevated reveal-on-scroll">
-      <div class="f66-typography">{{ news_item.text|linebreaks|censor }}</div>
-    </section>
+    <div class="fight-night-layout">
+      <section class="f66-detail-content story-surface glass-elevated reveal-on-scroll">
+        <div class="story-kicker">{{ story_kicker_text }}</div>
+        <div class="f66-typography story-body">{{ news_item.text|render_post_text|censor|linebreaks }}</div>
+      </section>
+
+      <aside class="story-side reveal-on-scroll" aria-label="Сайдбар новости">
+        <section class="fight-night-card">
+          <h3>{{ story_side_title }}</h3>
+          <p>{{ story_side_text }}</p>
+        </section>
+        <section class="fight-night-card">
+          <h3>Быстрые факты</h3>
+          <ul class="fight-night-list">
+            {% for item in story_fact_items %}
+            <li><span>{{ item.label }}</span>{{ item.value }}</li>
+            {% endfor %}
+          </ul>
+        </section>
+      </aside>
+    </div>
+
+    <div class="lightbox-modal" data-lightbox-modal aria-hidden="true">
+      <div class="lightbox-stage">
+        <div class="lightbox-toolbar">
+          <button type="button" class="lightbox-btn" data-lightbox-zoom-in aria-label="Увеличить">+</button>
+          <button type="button" class="lightbox-btn" data-lightbox-zoom-out aria-label="Уменьшить">−</button>
+          <button type="button" class="lightbox-btn" data-lightbox-reset aria-label="Сбросить">↺</button>
+          <button type="button" class="lightbox-btn" data-lightbox-close aria-label="Закрыть">×</button>
+        </div>
+        <div class="lightbox-viewport" data-lightbox-viewport>
+          <img class="lightbox-image" data-lightbox-image src="" alt="">
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
     {% if user.is_authenticated %}
     <section class="detail-controls glass-elevated reveal-on-scroll">
       <div class="reaction-row" data-post-id="{{ news_item.id }}">
-        <button class="reaction-btn {% if news_item.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like" aria-label="Лайк">
+        <button type="button" class="reaction-btn {% if news_item.user_reaction == 'like' %}is-active{% endif %}" data-react-btn data-reaction="like" aria-pressed="{% if news_item.user_reaction == 'like' %}true{% else %}false{% endif %}" aria-label="Лайк">
           👍 <span data-like-count>{{ news_item.likes_count|default:0 }}</span>
         </button>
-        <button class="reaction-btn {% if news_item.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike" aria-label="Дизлайк">
+        <button type="button" class="reaction-btn {% if news_item.user_reaction == 'dislike' %}is-active{% endif %}" data-react-btn data-reaction="dislike" aria-pressed="{% if news_item.user_reaction == 'dislike' %}true{% else %}false{% endif %}" aria-label="Дизлайк">
           👎 <span data-dislike-count>{{ news_item.dislikes_count|default:0 }}</span>
         </button>
       </div>
+      {% if user.is_staff or user.is_superuser or user == news_item.author.user %}
+      <div class="author-subscribe-controls">
+        <a href="{% url 'post_delete' news_item.id %}" class="f66-btn f66-btn-ghost">Удалить</a>
+      </div>
+      {% endif %}
       {% if user != news_item.author.user %}
       <div class="author-subscribe-controls">
         {% if is_author_subscribed %}
@@ -74,4 +428,661 @@
     </footer>
   </div>
 </article>
+{% endblock %}
+{% block extra_scripts %}
+{{ block.super }}
+<script>
+  (function () {
+    const reportNode = document.getElementById('mount-report-data');
+    if (!reportNode) return;
+
+    const report = JSON.parse(reportNode.textContent);
+
+    function svgEl(name, attrs) {
+      const node = document.createElementNS('http://www.w3.org/2000/svg', name);
+      Object.entries(attrs || {}).forEach(([key, value]) => node.setAttribute(key, value));
+      return node;
+    }
+
+    function clear(svg) {
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+    }
+
+    function addText(svg, x, y, text, attrs) {
+      const node = svgEl('text', { x, y, ...attrs });
+      node.textContent = text;
+      svg.appendChild(node);
+      return node;
+    }
+
+    function animateTrackMotion(svg, motionPath, options) {
+      if (!svg || !motionPath) return;
+      const config = Object.assign({ expanded: false }, options || {});
+      if (!config.expanded) return null;
+      const length = motionPath.getTotalLength();
+      const duration = config.expanded ? 5600 : 6800;
+      const strokeWidth = config.expanded ? 8 : 6;
+
+      const progressLine = svgEl('path', {
+        d: motionPath.getAttribute('d'),
+        class: 'track-progress-line',
+        stroke: config.expanded ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.78)',
+        'stroke-width': strokeWidth,
+      });
+      svg.appendChild(progressLine);
+
+      const carGroup = svgEl('g', { class: 'track-car' });
+      const carGlow = svgEl('circle', { cx: 0, cy: 0, r: config.expanded ? 13 : 10, fill: 'rgba(255,133,95,0.18)' });
+      const carBody = svgEl('rect', { x: -10, y: -5, width: 20, height: 10, rx: 4, fill: '#ffffff' });
+      const carAccent = svgEl('rect', { x: -3, y: -5, width: 8, height: 10, rx: 3, fill: '#ff855f' });
+      const carCabin = svgEl('rect', { x: -5, y: -3, width: 10, height: 6, rx: 2.5, fill: '#0f1725' });
+      const frontWheel = svgEl('circle', { cx: 6, cy: 6, r: 2, fill: '#0b111b' });
+      const rearWheel = svgEl('circle', { cx: -6, cy: 6, r: 2, fill: '#0b111b' });
+      const label = addText(carGroup, 0, config.expanded ? -16 : -14, 'Vodka Player', {
+        fill: '#ffcfbf',
+        'font-size': config.expanded ? 9 : 8,
+        'text-anchor': 'middle',
+        class: 'track-car-label',
+      });
+      carGroup.appendChild(carGlow);
+      carGroup.appendChild(carBody);
+      carGroup.appendChild(carAccent);
+      carGroup.appendChild(carCabin);
+      carGroup.appendChild(frontWheel);
+      carGroup.appendChild(rearWheel);
+      svg.appendChild(carGroup);
+
+      let animationId = null;
+      let startTime = null;
+      let active = true;
+
+      function frame(timestamp) {
+        if (!active) return;
+        if (!startTime) startTime = timestamp;
+        const elapsed = (timestamp - startTime) % duration;
+        const progress = elapsed / duration;
+        const distance = length * progress;
+        const point = motionPath.getPointAtLength(distance);
+        const lead = motionPath.getPointAtLength(Math.min(length, distance + 2));
+        const angle = Math.atan2(lead.y - point.y, lead.x - point.x) * (180 / Math.PI);
+
+        progressLine.style.strokeDasharray = `${distance} ${Math.max(0, length - distance)}`;
+        progressLine.style.strokeDashoffset = '0';
+        carGroup.setAttribute('transform', `translate(${point.x} ${point.y}) rotate(${angle})`);
+        label.setAttribute('transform', `rotate(${-angle})`);
+
+        animationId = requestAnimationFrame(frame);
+      }
+
+      function start() {
+        if (animationId) cancelAnimationFrame(animationId);
+        startTime = null;
+        active = true;
+        animationId = requestAnimationFrame(frame);
+      }
+
+      function stop() {
+        active = false;
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+          animationId = null;
+        }
+      }
+
+      start();
+      return { start, stop };
+    }
+
+    function renderFieldDelta(svg) {
+      if (!svg) return;
+      clear(svg);
+      const w = 760, h = 360, left = 80, right = 40, top = 26, bottom = 44;
+      const innerW = w - left - right;
+      const innerH = h - top - bottom;
+      const maxPos = Math.max(...report.field_delta.map((item) => Math.max(item.start, item.finish)));
+
+      for (let i = 1; i <= maxPos; i += 5) {
+        const y = top + ((i - 1) / (maxPos - 1)) * innerH;
+        svg.appendChild(svgEl('line', { x1: left, y1: y, x2: w - right, y2: y, stroke: 'rgba(255,255,255,0.08)' }));
+        addText(svg, 50, y + 4, `P${i}`, { fill: 'rgba(255,255,255,0.42)', 'font-size': 11, 'text-anchor': 'end' });
+      }
+
+      const visible = report.field_delta.slice(0, 18);
+      visible.forEach((item, index) => {
+        const x = left + (index / Math.max(1, visible.length - 1)) * innerW;
+        const yStart = top + ((item.start - 1) / (maxPos - 1)) * innerH;
+        const yFinish = top + ((item.finish - 1) / (maxPos - 1)) * innerH;
+        const stroke = item.highlight ? '#4f8dff' : 'rgba(255,255,255,0.18)';
+        const width = item.highlight ? 4 : 2;
+        svg.appendChild(svgEl('line', { x1: x, y1: yStart, x2: x, y2: yFinish, stroke, 'stroke-width': width, 'stroke-linecap': 'round' }));
+        svg.appendChild(svgEl('circle', { cx: x, cy: yStart, r: item.highlight ? 5 : 3, fill: '#f9735b' }));
+        svg.appendChild(svgEl('circle', { cx: x, cy: yFinish, r: item.highlight ? 6 : 3.5, fill: stroke }));
+        if (item.highlight) {
+          addText(svg, x, yFinish - 14, item.name, { fill: '#ffffff', 'font-size': 12, 'font-weight': '700', 'text-anchor': 'middle' });
+        }
+      });
+    }
+
+    function renderProgress(svg) {
+      if (!svg) return;
+      clear(svg);
+      const w = 760, h = 360, left = 70, right = 30, top = 26, bottom = 50;
+      const innerW = w - left - right;
+      const innerH = h - top - bottom;
+      const maxLap = report.team.laps_completed;
+      const maxPos = report.team.start_pos;
+      const minPos = report.team.finish_pos;
+
+      for (let i = 0; i <= 4; i += 1) {
+        const lap = Math.round((maxLap / 4) * i);
+        const x = left + (lap / maxLap) * innerW;
+        svg.appendChild(svgEl('line', { x1: x, y1: top, x2: x, y2: h - bottom, stroke: 'rgba(255,255,255,0.07)' }));
+        addText(svg, x, h - 18, `Lap ${lap}`, { fill: 'rgba(255,255,255,0.42)', 'font-size': 11, 'text-anchor': 'middle' });
+      }
+
+      const path = report.modeled_progress.map((point, index) => {
+        const x = left + (point.lap / maxLap) * innerW;
+        const y = top + ((point.position - minPos) / Math.max(1, maxPos - minPos)) * innerH;
+        return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
+      }).join(' ');
+
+      svg.appendChild(svgEl('path', {
+        d: path,
+        fill: 'none',
+        stroke: '#4f8dff',
+        'stroke-width': 4,
+        'stroke-linecap': 'round',
+        'stroke-linejoin': 'round',
+      }));
+
+      const last = report.modeled_progress[report.modeled_progress.length - 1];
+      const lx = left + (last.lap / maxLap) * innerW;
+      const ly = top + ((last.position - minPos) / Math.max(1, maxPos - minPos)) * innerH;
+      svg.appendChild(svgEl('circle', { cx: lx, cy: ly, r: 7, fill: '#f9735b' }));
+      addText(svg, lx - 12, ly - 14, `P${report.team.finish_pos}`, { fill: '#ffffff', 'font-size': 12, 'font-weight': '700', 'text-anchor': 'end' });
+    }
+
+    function renderPace(svg) {
+      if (!svg) return;
+      clear(svg);
+      const w = 760, h = 360, left = 200, right = 40, top = 36, bottom = 34;
+      const innerW = w - left - right;
+      const innerH = h - top - bottom;
+      const allValues = report.drivers.flatMap((item) => [item.avg_seconds, item.best_seconds]);
+      const minValue = Math.min(...allValues);
+      const maxValue = Math.max(...allValues);
+
+      report.drivers.forEach((driver, index) => {
+        const y = top + index * (innerH / Math.max(1, report.drivers.length));
+        const avgX = left + ((driver.avg_seconds - minValue) / Math.max(0.001, maxValue - minValue)) * innerW;
+        const bestX = left + ((driver.best_seconds - minValue) / Math.max(0.001, maxValue - minValue)) * innerW;
+        addText(svg, 24, y + 8, driver.name, { fill: '#ffffff', 'font-size': 13, 'font-weight': '700' });
+        svg.appendChild(svgEl('line', { x1: left, y1: y, x2: left + innerW, y2: y, stroke: 'rgba(255,255,255,0.12)', 'stroke-width': 6, 'stroke-linecap': 'round' }));
+        svg.appendChild(svgEl('line', { x1: bestX, y1: y - 16, x2: bestX, y2: y + 16, stroke: '#f9735b', 'stroke-width': 4, 'stroke-linecap': 'round' }));
+        svg.appendChild(svgEl('circle', { cx: avgX, cy: y, r: 9, fill: '#4f8dff' }));
+        addText(svg, bestX, y - 24, driver.best_lap, { fill: '#f9735b', 'font-size': 11, 'text-anchor': 'middle' });
+        addText(svg, avgX, y + 28, driver.avg_lap, { fill: '#8fb7ff', 'font-size': 11, 'text-anchor': 'middle' });
+      });
+    }
+
+    function renderWorkload(svg) {
+      if (!svg) return;
+      clear(svg);
+      const w = 760, h = 360, left = 70, right = 30, top = 30, bottom = 44;
+      const innerW = w - left - right;
+      const innerH = h - top - bottom;
+      const maxLaps = Math.max(...report.drivers.map((item) => item.laps));
+      const maxInc = Math.max(...report.drivers.map((item) => item.inc));
+      const band = innerW / Math.max(1, report.drivers.length);
+
+      report.drivers.forEach((driver, index) => {
+        const x = left + index * band + 28;
+        const lapsH = (driver.laps / maxLaps) * (innerH - 30);
+        const incH = (driver.inc / maxInc) * (innerH - 80);
+        svg.appendChild(svgEl('rect', { x, y: top + innerH - lapsH, width: 44, height: lapsH, rx: 14, fill: '#3f76f8' }));
+        svg.appendChild(svgEl('rect', { x: x + 58, y: top + innerH - incH, width: 32, height: incH, rx: 12, fill: '#dbe6fb', stroke: '#acc3f0' }));
+        addText(svg, x + 22, top + innerH - lapsH - 10, driver.laps, { fill: '#ffffff', 'font-size': 11, 'text-anchor': 'middle' });
+        addText(svg, x + 74, top + innerH - incH - 10, driver.inc, { fill: '#dbe6fb', 'font-size': 11, 'text-anchor': 'middle' });
+        addText(svg, x + 44, h - 16, driver.name.split(' ')[0], { fill: 'rgba(255,255,255,0.55)', 'font-size': 11, 'text-anchor': 'middle' });
+      });
+    }
+
+    function renderHeatmap(svg) {
+      if (!svg) return;
+      clear(svg);
+      const cols = report.heatmap[0]?.cells || [];
+      const cellW = 120;
+      const cellH = 58;
+      report.heatmap.forEach((row, rowIndex) => {
+        addText(svg, 20, 78 + rowIndex * 70, row.driver, { fill: '#ffffff', 'font-size': 13, 'font-weight': '700' });
+        row.cells.forEach((cell, colIndex) => {
+          const x = 230 + colIndex * (cellW + 12);
+          const y = 40 + rowIndex * 70;
+          const opacity = 0.16 + cell.intensity * 0.74;
+          svg.appendChild(svgEl('rect', {
+            x, y, width: cellW, height: cellH, rx: 18,
+            fill: `rgba(79, 141, 255, ${opacity.toFixed(3)})`,
+            stroke: 'rgba(255,255,255,0.08)'
+          }));
+          addText(svg, x + 16, y + 22, cell.label, { fill: 'rgba(255,255,255,0.46)', 'font-size': 10, 'font-weight': '700' });
+          addText(svg, x + 16, y + 44, String(cell.value), { fill: '#ffffff', 'font-size': 14, 'font-weight': '700' });
+        });
+      });
+      cols.forEach((cell, index) => {
+        addText(svg, 290 + index * (cellW + 12), 20, cell.label, { fill: '#8ca4cf', 'font-size': 11, 'font-weight': '700', 'text-anchor': 'middle' });
+      });
+    }
+
+    function renderTrack(svg, options) {
+      if (!svg) return;
+      const config = Object.assign({ expanded: false }, options || {});
+      clear(svg);
+      const defs = svgEl('defs');
+      const marker = svgEl('marker', { id: 'northArrow', markerWidth: '8', markerHeight: '8', refX: '4', refY: '4', orient: 'auto' });
+      marker.appendChild(svgEl('path', { d: 'M0 0 L8 4 L0 8 Z', fill: '#111111' }));
+      defs.appendChild(marker);
+      svg.appendChild(defs);
+
+      const fullPath = 'M332 392 L338 340 L344 284 L350 228 L356 170 L360 122 C362 104, 354 90, 338 82 C318 72, 306 62, 306 48 C306 30, 316 18, 334 18 C350 18, 360 24, 372 40 C386 58, 402 74, 420 82 C440 90, 466 92, 494 90 L556 88 C588 88, 614 98, 634 116 C654 134, 666 156, 670 182 C674 210, 666 238, 650 262 C634 286, 612 302, 586 310 C562 318, 548 332, 546 350 C544 364, 548 376, 558 386 C568 396, 566 404, 552 408 C530 414, 500 410, 474 398 L414 372 C392 362, 374 364, 362 382 C354 394, 346 398, 338 398 C334 398, 332 396, 332 392';
+      const sector1 = 'M332 392 L338 340 L344 284 L350 228 L356 170';
+      const sector2 = 'M356 170 L360 122 C362 104, 354 90, 338 82 C318 72, 306 62, 306 48 C306 30, 316 18, 334 18 C350 18, 360 24, 372 40 C386 58, 402 74, 420 82 C440 90, 466 92, 494 90';
+      const sector3 = 'M494 90 L556 88 C588 88, 614 98, 634 116 C654 134, 666 156, 670 182 C674 210, 666 238, 650 262 C634 286, 612 302, 586 310 C562 318, 548 332, 546 350 C544 364, 548 376, 558 386 C568 396, 566 404, 552 408 C530 414, 500 410, 474 398 L414 372 C392 362, 374 364, 362 382 C354 394, 346 398, 338 398 C334 398, 332 396, 332 392';
+      svg.appendChild(svgEl('rect', { x: 0, y: 0, width: 760, height: 420, fill: '#e7e7e7' }));
+      svg.appendChild(svgEl('path', { d: fullPath, fill: 'none', stroke: '#111111', 'stroke-width': config.expanded ? 8 : 7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+      const motionPath = svgEl('path', { d: fullPath, fill: 'none', stroke: 'transparent', 'stroke-width': 1 });
+      svg.appendChild(motionPath);
+
+      const sectors = [
+        { path: sector1, color: '#4f8dff', className: 'track-segment track-sector-1' },
+        { path: sector2, color: '#ff855f', className: 'track-segment track-sector-2' },
+        { path: sector3, color: '#8fd4ff', className: 'track-segment track-sector-3' },
+      ];
+
+      sectors.forEach((sector) => {
+        const pathNode = svgEl('path', {
+          d: sector.path,
+          fill: 'none',
+          stroke: sector.color,
+          'stroke-width': config.expanded ? 2.2 : 1.6,
+          opacity: config.expanded ? 0.45 : 0.2,
+          class: sector.className,
+        });
+        svg.appendChild(pathNode);
+      });
+
+      addText(svg, 44, 38, '200m', { fill: '#111111', 'font-size': 11, 'font-weight': '700' });
+      svg.appendChild(svgEl('line', { x1: 40, y1: 48, x2: 100, y2: 48, stroke: '#111111', 'stroke-width': 2 }));
+      svg.appendChild(svgEl('line', { x1: 40, y1: 44, x2: 40, y2: 52, stroke: '#111111', 'stroke-width': 2 }));
+      svg.appendChild(svgEl('line', { x1: 100, y1: 44, x2: 100, y2: 52, stroke: '#111111', 'stroke-width': 2 }));
+      addText(svg, 78, 84, 'N', { fill: '#111111', 'font-size': 22, 'font-weight': '800', 'text-anchor': 'middle' });
+      svg.appendChild(svgEl('line', { x1: 78, y1: 94, x2: 78, y2: 126, stroke: '#111111', 'stroke-width': 2.5, 'marker-end': 'url(#northArrow)' }));
+
+      addText(svg, 420, 302, 'Mountain', { fill: '#111111', 'font-size': 13, 'font-weight': '700', 'text-anchor': 'middle', transform: 'rotate(-16 420 302)' });
+      addText(svg, 424, 320, 'Straight', { fill: '#111111', 'font-size': 13, 'font-weight': '700', 'text-anchor': 'middle', transform: 'rotate(-16 424 320)' });
+      addText(svg, 348, 326, '1', { fill: '#9b9b9b', 'font-size': 28, 'font-style': 'italic', 'text-anchor': 'middle', transform: 'rotate(-14 348 326)' });
+      addText(svg, 126, 190, 'Conrod', { fill: '#111111', 'font-size': 13, 'font-weight': '700', 'text-anchor': 'middle', transform: 'rotate(-90 126 190)' });
+      addText(svg, 142, 190, 'Straight', { fill: '#111111', 'font-size': 13, 'font-weight': '700', 'text-anchor': 'middle', transform: 'rotate(-90 142 190)' });
+      addText(svg, 236, 252, 'The', { fill: '#111111', 'font-size': 12, 'font-weight': '700', 'text-anchor': 'middle' });
+      addText(svg, 234, 268, 'Chase', { fill: '#111111', 'font-size': 12, 'font-weight': '700', 'text-anchor': 'middle' });
+      addText(svg, 298, 384, 'Main', { fill: '#111111', 'font-size': 12, 'font-weight': '700', 'text-anchor': 'middle' });
+      addText(svg, 298, 400, 'Straight', { fill: '#111111', 'font-size': 12, 'font-weight': '700', 'text-anchor': 'middle' });
+      addText(svg, 362, 384, 'Hell', { fill: '#111111', 'font-size': 12, 'font-weight': '700' });
+      addText(svg, 362, 400, 'Corner', { fill: '#111111', 'font-size': 12, 'font-weight': '700' });
+      addText(svg, 98, 374, 'Murrays', { fill: '#111111', 'font-size': 12, 'font-weight': '700', 'text-anchor': 'end' });
+      addText(svg, 98, 390, 'Corner', { fill: '#111111', 'font-size': 12, 'font-weight': '700', 'text-anchor': 'end' });
+      addText(svg, 444, 242, 'Griffins', { fill: '#111111', 'font-size': 12, 'font-weight': '700' });
+      addText(svg, 444, 258, 'Bend', { fill: '#111111', 'font-size': 12, 'font-weight': '700' });
+      addText(svg, 510, 232, 'Quarry', { fill: '#111111', 'font-size': 12, 'font-weight': '700' });
+      addText(svg, 506, 248, 'Corner', { fill: '#111111', 'font-size': 12, 'font-weight': '700' });
+      addText(svg, 572, 264, 'The', { fill: '#111111', 'font-size': 12, 'font-weight': '700' });
+      addText(svg, 580, 280, 'Cutting', { fill: '#111111', 'font-size': 12, 'font-weight': '700' });
+      addText(svg, 622, 122, 'McPhillamy', { fill: '#111111', 'font-size': 11, 'font-weight': '700' });
+      addText(svg, 628, 136, 'Park', { fill: '#111111', 'font-size': 11, 'font-weight': '700' });
+      addText(svg, 568, 152, 'Skyline', { fill: '#111111', 'font-size': 12, 'font-weight': '700' });
+      addText(svg, 512, 140, 'The', { fill: '#111111', 'font-size': 11, 'font-weight': '700' });
+      addText(svg, 510, 154, 'Esses', { fill: '#111111', 'font-size': 11, 'font-weight': '700' });
+      addText(svg, 482, 102, 'The', { fill: '#111111', 'font-size': 11, 'font-weight': '700' });
+      addText(svg, 482, 116, 'Dipper', { fill: '#111111', 'font-size': 11, 'font-weight': '700' });
+      addText(svg, 620, 176, 'Sulman', { fill: '#111111', 'font-size': 11, 'font-weight': '700' });
+      addText(svg, 624, 190, 'Park', { fill: '#111111', 'font-size': 11, 'font-weight': '700' });
+      addText(svg, 654, 204, 'Frog', { fill: '#111111', 'font-size': 11, 'font-weight': '700' });
+      addText(svg, 658, 218, 'Hollow', { fill: '#111111', 'font-size': 11, 'font-weight': '700' });
+      addText(svg, 570, 216, 'Reid', { fill: '#111111', 'font-size': 11, 'font-weight': '700' });
+      addText(svg, 574, 230, 'Park', { fill: '#111111', 'font-size': 11, 'font-weight': '700' });
+      addText(svg, 356, 18, 'Forest\'s', { fill: '#111111', 'font-size': 12, 'font-weight': '700', 'text-anchor': 'middle' });
+      addText(svg, 356, 34, 'Elbow', { fill: '#111111', 'font-size': 12, 'font-weight': '700', 'text-anchor': 'middle' });
+      addText(svg, 498, 388, 'Mount Panorama Circuit', { fill: '#111111', 'font-size': 12, 'font-weight': '700' });
+      addText(svg, 498, 404, 'Bathurst, NSW, Australia', { fill: '#111111', 'font-size': 12, 'font-weight': '700' });
+
+      const numberedNodes = [
+        { n: 1, x: 346, y: 382 }, { n: 2, x: 436, y: 242 }, { n: 3, x: 502, y: 280 }, { n: 4, x: 516, y: 264 },
+        { n: 5, x: 524, y: 238 }, { n: 6, x: 538, y: 212 }, { n: 7, x: 564, y: 186 }, { n: 8, x: 588, y: 172 },
+        { n: 9, x: 620, y: 146 }, { n: 10, x: 646, y: 114 }, { n: 11, x: 550, y: 102 }, { n: 12, x: 524, y: 116 },
+        { n: 13, x: 506, y: 106 }, { n: 14, x: 484, y: 110 }, { n: 15, x: 464, y: 98 }, { n: 16, x: 446, y: 88 },
+        { n: 17, x: 426, y: 70 }, { n: 18, x: 358, y: 28 }, { n: 19, x: 328, y: 62 }, { n: 20, x: 140, y: 254 },
+        { n: 21, x: 134, y: 288 }, { n: 22, x: 130, y: 314 }, { n: 23, x: 130, y: 374 },
+      ];
+
+      numberedNodes.forEach((point) => {
+        svg.appendChild(svgEl('circle', { cx: point.x, cy: point.y, r: 9.5, fill: '#7a7a7a' }));
+        svg.appendChild(svgEl('circle', { cx: point.x, cy: point.y, r: 8, fill: '#efefef' }));
+        addText(svg, point.x, point.y + 3.5, String(point.n), { fill: '#4a4a4a', 'font-size': 10, 'font-weight': '700', 'text-anchor': 'middle' });
+      });
+
+      const animateSegments = () => {
+        svg.querySelectorAll('.track-segment').forEach((segment) => {
+          const length = segment.getTotalLength();
+          segment.style.setProperty('--track-length', length);
+          segment.style.strokeDasharray = `${length}`;
+          segment.style.strokeDashoffset = `${length}`;
+          segment.classList.add('is-animated');
+        });
+      };
+
+      if (config.expanded) {
+        requestAnimationFrame(animateSegments);
+        const controller = animateTrackMotion(svg, motionPath, config);
+        svg.__trackAnimationController = controller;
+        return;
+      }
+
+      const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          animateSegments();
+          if (!svg.__trackAnimationController) {
+            svg.__trackAnimationController = animateTrackMotion(svg, motionPath, config);
+          } else {
+            svg.__trackAnimationController.start();
+          }
+          obs.disconnect();
+        });
+      }, { threshold: 0.35 });
+      observer.observe(svg);
+    }
+
+    renderFieldDelta(document.querySelector('[data-chart-field-delta]'));
+    renderProgress(document.querySelector('[data-chart-progress]'));
+    renderPace(document.querySelector('[data-chart-pace]'));
+    renderWorkload(document.querySelector('[data-chart-workload]'));
+    renderHeatmap(document.querySelector('[data-chart-heatmap]'));
+    renderTrack(document.querySelector('[data-track-map]'));
+
+    const trackOpen = document.querySelector('[data-track-open]');
+    const trackModal = document.querySelector('[data-track-modal]');
+    const trackClose = document.querySelector('[data-track-close]');
+    const trackExpanded = document.querySelector('[data-track-map-expanded]');
+    const trackCanvas = document.querySelector('[data-track-canvas]');
+    const trackTransform = document.querySelector('[data-track-transform]');
+    const trackZoomIn = document.querySelector('[data-track-zoom-in]');
+    const trackZoomOut = document.querySelector('[data-track-zoom-out]');
+    const trackReset = document.querySelector('[data-track-reset]');
+    let trackScale = 1;
+    let trackTiltX = 0;
+    let trackTiltY = 0;
+
+    function renderTrackTransform() {
+      if (!trackTransform) return;
+      trackTransform.style.transform = `perspective(1800px) rotateX(${trackTiltX}deg) rotateY(${trackTiltY}deg) scale(${trackScale})`;
+    }
+
+    function resetTrackTransform() {
+      trackScale = 1;
+      trackTiltX = 0;
+      trackTiltY = 0;
+      renderTrackTransform();
+    }
+
+    function openTrackModal() {
+      if (!trackModal) return;
+      if (trackExpanded) {
+        renderTrack(trackExpanded, { expanded: true });
+      }
+      resetTrackTransform();
+      trackModal.classList.add('is-open');
+      trackModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeTrackModal() {
+      if (!trackModal) return;
+      if (trackExpanded && trackExpanded.__trackAnimationController) {
+        trackExpanded.__trackAnimationController.stop();
+      }
+      trackModal.classList.remove('is-open');
+      trackModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      resetTrackTransform();
+    }
+
+    if (trackOpen) {
+      trackOpen.addEventListener('click', openTrackModal);
+      trackOpen.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openTrackModal();
+        }
+      });
+    }
+
+    if (trackClose) {
+      trackClose.addEventListener('click', closeTrackModal);
+    }
+
+    if (trackModal) {
+      trackModal.addEventListener('click', (event) => {
+        if (event.target === trackModal) closeTrackModal();
+      });
+    }
+
+    if (trackZoomIn) {
+      trackZoomIn.addEventListener('click', () => {
+        trackScale = Math.min(1.9, trackScale + 0.12);
+        renderTrackTransform();
+      });
+    }
+
+    if (trackZoomOut) {
+      trackZoomOut.addEventListener('click', () => {
+        trackScale = Math.max(0.8, trackScale - 0.12);
+        renderTrackTransform();
+      });
+    }
+
+    if (trackReset) {
+      trackReset.addEventListener('click', resetTrackTransform);
+    }
+
+    if (trackCanvas) {
+      trackCanvas.addEventListener('mousemove', (event) => {
+        if (!trackModal || !trackModal.classList.contains('is-open')) return;
+        const rect = trackCanvas.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / rect.width;
+        const y = (event.clientY - rect.top) / rect.height;
+        trackTiltY = (x - 0.5) * 12;
+        trackTiltX = (0.5 - y) * 10;
+        renderTrackTransform();
+      });
+      trackCanvas.addEventListener('mouseleave', () => {
+        trackTiltX = 0;
+        trackTiltY = 0;
+        renderTrackTransform();
+      });
+      trackCanvas.addEventListener('wheel', (event) => {
+        if (!trackModal || !trackModal.classList.contains('is-open')) return;
+        event.preventDefault();
+        const delta = event.deltaY > 0 ? -0.08 : 0.08;
+        trackScale = Math.max(0.8, Math.min(1.9, trackScale + delta));
+        renderTrackTransform();
+      }, { passive: false });
+    }
+
+    const slider = document.querySelector('[data-race-slider]');
+    const lapReadout = document.querySelector('[data-race-lap]');
+    const positionReadout = document.querySelector('[data-race-position]');
+    const playBtn = document.querySelector('[data-race-play]');
+    let playbackId = null;
+
+    function updateRaceState() {
+      if (!slider || !lapReadout || !positionReadout) return;
+      const lap = Number(slider.value);
+      const nearest = report.modeled_progress.reduce((best, point) => {
+        return Math.abs(point.lap - lap) < Math.abs(best.lap - lap) ? point : best;
+      }, report.modeled_progress[0]);
+      lapReadout.textContent = nearest.lap;
+      positionReadout.textContent = `P${Math.round(nearest.position)}`;
+    }
+
+    if (slider) {
+      slider.addEventListener('input', updateRaceState);
+      updateRaceState();
+    }
+
+    if (playBtn && slider) {
+      playBtn.addEventListener('click', function () {
+        if (playbackId) {
+          clearInterval(playbackId);
+          playbackId = null;
+          playBtn.textContent = '▶';
+          return;
+        }
+        playBtn.textContent = '❚❚';
+        playbackId = setInterval(() => {
+          const next = Number(slider.value) + Number(slider.step || 4);
+          if (next > Number(slider.max)) {
+            clearInterval(playbackId);
+            playbackId = null;
+            playBtn.textContent = '▶';
+            return;
+          }
+          slider.value = next;
+          updateRaceState();
+        }, 220);
+      });
+    }
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && trackModal && trackModal.classList.contains('is-open')) {
+        closeTrackModal();
+      }
+    });
+  })();
+</script>
+<script>
+  (function () {
+    const modal = document.querySelector('[data-lightbox-modal]');
+    const viewport = document.querySelector('[data-lightbox-viewport]');
+    const image = document.querySelector('[data-lightbox-image]');
+    if (!modal || !viewport || !image) return;
+
+    const triggers = document.querySelectorAll('[data-lightbox-trigger]');
+    const closeBtn = modal.querySelector('[data-lightbox-close]');
+    const zoomInBtn = modal.querySelector('[data-lightbox-zoom-in]');
+    const zoomOutBtn = modal.querySelector('[data-lightbox-zoom-out]');
+    const resetBtn = modal.querySelector('[data-lightbox-reset]');
+
+    let scale = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    function render() {
+      image.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px)) scale(${scale})`;
+    }
+
+    function resetView() {
+      scale = 1;
+      offsetX = 0;
+      offsetY = 0;
+      render();
+    }
+
+    function openLightbox(src, alt) {
+      image.src = src;
+      image.alt = alt || 'График';
+      resetView();
+      modal.classList.add('is-open');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      image.src = '';
+    }
+
+    triggers.forEach((node) => {
+      node.addEventListener('click', function () {
+        openLightbox(node.dataset.imageSrc, node.dataset.imageAlt);
+      });
+    });
+
+    zoomInBtn?.addEventListener('click', function () {
+      scale = Math.min(4, scale + 0.25);
+      render();
+    });
+
+    zoomOutBtn?.addEventListener('click', function () {
+      scale = Math.max(0.75, scale - 0.25);
+      render();
+    });
+
+    resetBtn?.addEventListener('click', resetView);
+    closeBtn?.addEventListener('click', closeLightbox);
+
+    modal.addEventListener('click', function (event) {
+      if (event.target === modal) closeLightbox();
+    });
+
+    viewport.addEventListener('wheel', function (event) {
+      event.preventDefault();
+      const delta = event.deltaY < 0 ? 0.2 : -0.2;
+      scale = Math.min(4, Math.max(0.75, scale + delta));
+      render();
+    }, { passive: false });
+
+    viewport.addEventListener('pointerdown', function (event) {
+      isDragging = true;
+      startX = event.clientX - offsetX;
+      startY = event.clientY - offsetY;
+      viewport.classList.add('is-dragging');
+      viewport.setPointerCapture(event.pointerId);
+    });
+
+    viewport.addEventListener('pointermove', function (event) {
+      if (!isDragging) return;
+      offsetX = event.clientX - startX;
+      offsetY = event.clientY - startY;
+      render();
+    });
+
+    function stopDragging(event) {
+      if (!isDragging) return;
+      isDragging = false;
+      viewport.classList.remove('is-dragging');
+      if (event?.pointerId !== undefined) {
+        try { viewport.releasePointerCapture(event.pointerId); } catch (e) {}
+      }
+    }
+
+    viewport.addEventListener('pointerup', stopDragging);
+    viewport.addEventListener('pointercancel', stopDragging);
+    window.addEventListener('keydown', function (event) {
+      if (!modal.classList.contains('is-open')) return;
+      if (event.key === 'Escape') closeLightbox();
+      if (event.key === '+') {
+        scale = Math.min(4, scale + 0.25);
+        render();
+      }
+      if (event.key === '-') {
+        scale = Math.max(0.75, scale - 0.25);
+        render();
+      }
+    });
+  })();
+</script>
 {% endblock %}
